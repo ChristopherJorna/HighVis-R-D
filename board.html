@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HighVis R&D — Fivefold</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0f0f0f;
+    color: #e0e0e0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 13px;
+  }
+
+  /* ── Header ── */
+  header {
+    padding: 16px 24px;
+    border-bottom: 1px solid #1e1e1e;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    background: #0a0a0a;
+  }
+
+  .header-brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-right: 1px solid #222;
+    padding-right: 20px;
+  }
+
+  .header-brand img {
+    height: 32px;
+    width: auto;
+    background: #fff;
+    border-radius: 4px;
+    padding: 4px 6px;
+  }
+
+  .header-titles { display: flex; flex-direction: column; gap: 1px; }
+  .header-titles h1 { font-size: 13px; font-weight: 700; color: #fff; letter-spacing: 0.08em; text-transform: uppercase; }
+  .header-titles span { font-size: 10px; color: #c4622d; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; }
+
+  .filters { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  select {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    color: #ccc;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  select:hover { border-color: #555; }
+
+  .count { color: #555; font-size: 12px; margin-left: auto; }
+
+  /* ── Grid ── */
+  #grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+    padding: 16px 24px;
+  }
+
+  .card {
+    background: #161616;
+    border: 1px solid #252525;
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.1s;
+  }
+  .card:hover { border-color: #c4622d; transform: translateY(-1px); }
+
+  .card-thumb {
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: #1e1e1e;
+    overflow: hidden;
+  }
+  .card-thumb img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .card-thumb .no-thumb {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    color: #333; font-size: 11px;
+  }
+
+  .card-body { padding: 10px 12px 12px; }
+  .card-id { font-size: 10px; color: #555; margin-bottom: 6px; font-family: monospace; word-break: break-all; }
+  .card-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
+
+  .tag { font-size: 10px; padding: 2px 6px; border-radius: 3px; font-weight: 500; }
+  .tag-scene  { background: #1e1208; color: #c4622d; }
+  .tag-pass   { background: #1a1a2a; color: #6d6db3; }
+  .tag-img    { background: #1a1a1a; color: #888; }
+  .tag-vid    { background: #1a1a1a; color: #aaa; }
+
+  .card-score { font-size: 20px; font-weight: 700; color: #fff; }
+  .card-score span { font-size: 12px; color: #444; font-weight: 400; }
+  .card-notes { color: #666; font-size: 11px; margin-top: 4px; line-height: 1.4; }
+
+  /* ── Modal overlay ── */
+  #modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.94);
+    z-index: 100;
+    overflow-y: auto;
+    padding: 20px;
+  }
+  #modal-overlay.open { display: block; }
+
+  #modal {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #111;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  #modal-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid #1a1a1a;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #0d0d0d;
+  }
+  #modal-title { font-size: 12px; font-weight: 600; color: #fff; font-family: monospace; }
+  #modal-close {
+    background: none; border: none; color: #555;
+    font-size: 22px; cursor: pointer; line-height: 1; padding: 0 4px;
+  }
+  #modal-close:hover { color: #ccc; }
+
+  /* ── Compare slider ── */
+  .compare-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16/9;
+    overflow: hidden;
+    cursor: col-resize;
+    user-select: none;
+    background: #000;
+  }
+
+  .compare-before,
+  .compare-after {
+    position: absolute;
+    inset: 0;
+  }
+  .compare-before img,
+  .compare-after img {
+    width: 100%; height: 100%;
+    object-fit: contain;
+    display: block;
+    pointer-events: none;
+  }
+  .compare-after {
+    clip-path: inset(0 50% 0 0);
+  }
+
+  .compare-divider {
+    position: absolute;
+    top: 0; bottom: 0;
+    left: 50%;
+    width: 2px;
+    background: #c4622d;
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+  .compare-handle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    background: #c4622d;
+    border: 2px solid #fff;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  }
+  .compare-handle svg { width: 16px; height: 16px; fill: #fff; }
+
+  .compare-labels {
+    position: absolute;
+    top: 10px;
+    left: 0; right: 0;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 12px;
+    pointer-events: none;
+  }
+  .compare-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    background: rgba(0,0,0,0.6);
+    color: #aaa;
+    padding: 3px 8px;
+    border-radius: 3px;
+  }
+  .compare-label.right { color: #c4622d; }
+
+  /* ── Stage picker ── */
+  .stage-picker {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #1a1a1a;
+    align-items: center;
+    background: #0d0d0d;
+  }
+  .stage-picker label { font-size: 10px; color: #444; text-transform: uppercase; letter-spacing: 0.1em; margin-right: 4px; }
+
+  .stage-btn {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    color: #666;
+    padding: 5px 12px;
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.1s;
+  }
+  .stage-btn:hover { border-color: #444; color: #ccc; }
+  .stage-btn.active { background: #1e0e06; border-color: #c4622d; color: #c4622d; }
+  .stage-btn:disabled { opacity: 0.25; cursor: default; }
+
+  /* ── Video section ── */
+  .video-section {
+    padding: 16px;
+    border-bottom: 1px solid #1a1a1a;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .video-wrap {
+    flex: 1;
+    background: #000;
+    border-radius: 4px;
+    overflow: hidden;
+    aspect-ratio: 16/9;
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .video-wrap video {
+    width: 100%; height: 100%;
+    object-fit: contain;
+  }
+  .video-wrap .no-video {
+    color: #2a2a2a; font-size: 12px;
+  }
+
+  .video-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 4px;
+  }
+
+  .vid-btn {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    color: #888;
+    width: 40px; height: 40px;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.1s;
+  }
+  .vid-btn:hover { border-color: #555; color: #ccc; }
+  .vid-btn.active { background: #1e0e06; border-color: #c4622d; color: #c4622d; }
+  .vid-btn:disabled { opacity: 0.25; cursor: default; }
+  .vid-label { font-size: 9px; color: #444; text-transform: uppercase; letter-spacing: 0.08em; text-align: center; }
+
+  /* ── Meta + notes ── */
+  #modal-meta {
+    padding: 14px 20px;
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid #1a1a1a;
+  }
+  .meta-item { display: flex; flex-direction: column; gap: 2px; }
+  .meta-key  { font-size: 10px; color: #444; text-transform: uppercase; letter-spacing: 0.08em; }
+  .meta-val  { font-size: 13px; color: #ccc; }
+
+  #modal-notes-area { padding: 12px 20px 16px; }
+  #modal-notes-area textarea {
+    width: 100%;
+    background: #0a0a0a;
+    border: 1px solid #222;
+    color: #ccc;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    line-height: 1.5;
+    resize: vertical;
+    min-height: 52px;
+  }
+
+  .empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+    color: #333;
+  }
+
+  @media (max-width: 600px) {
+    .video-section { flex-direction: column; }
+    .video-controls { flex-direction: row; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-brand">
+    <img src="assets/fivefold-logo.png" alt="Fivefold">
+    <div class="header-titles">
+      <h1>HighVis R&D</h1>
+      <span>AI Pipeline Testing</span>
+    </div>
+  </div>
+  <div class="filters">
+    <select id="f-scene"><option value="">All scenes</option></select>
+    <select id="f-img"><option value="">All image models</option></select>
+    <select id="f-vid"><option value="">All video models</option></select>
+    <select id="f-pass"><option value="">All passes</option></select>
+  </div>
+  <span class="count" id="result-count"></span>
+</header>
+
+<div id="grid"></div>
+
+<!-- ── Modal ── -->
+<div id="modal-overlay">
+  <div id="modal">
+
+    <div id="modal-header">
+      <span id="modal-title"></span>
+      <button id="modal-close">×</button>
+    </div>
+
+    <!-- Compare slider -->
+    <div class="compare-wrap" id="compare-wrap">
+      <div class="compare-before" id="compare-before">
+        <img id="img-before" src="" alt="">
+      </div>
+      <div class="compare-after" id="compare-after">
+        <img id="img-after" src="" alt="">
+      </div>
+      <div class="compare-divider" id="compare-divider"></div>
+      <div class="compare-handle" id="compare-handle">
+        <svg viewBox="0 0 24 24"><path d="M8 5l-7 7 7 7V5zm8 0v14l7-7-7-7z"/></svg>
+      </div>
+      <div class="compare-labels">
+        <span class="compare-label" id="label-before">Source</span>
+        <span class="compare-label right" id="label-after">—</span>
+      </div>
+    </div>
+
+    <!-- Stage picker -->
+    <div class="stage-picker">
+      <label>Compare vs</label>
+      <button class="stage-btn" id="btn-imggen" onclick="setAfterStage('imggen')">Image Gen</button>
+      <button class="stage-btn" id="btn-magnific" onclick="setAfterStage('magnific')">Magnific</button>
+    </div>
+
+    <!-- Video -->
+    <div class="video-section">
+      <div class="video-wrap">
+        <video id="modal-video" preload="metadata"></video>
+        <div class="no-video" id="no-video-msg" style="display:none">No video generated</div>
+      </div>
+      <div class="video-controls">
+        <div>
+          <button class="vid-btn" id="btn-play" onclick="togglePlay()" title="Play / Pause">▶</button>
+          <div class="vid-label">Play</div>
+        </div>
+        <div>
+          <button class="vid-btn" id="btn-loop" onclick="toggleLoop()" title="Loop">↻</button>
+          <div class="vid-label">Loop</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="modal-meta"></div>
+
+    <div id="modal-notes-area">
+      <textarea id="modal-notes" placeholder="Notes for this test..."></textarea>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let allTests = [];
+let currentTest = null;
+let sliderPos = 50;
+let isDragging = false;
+let currentAfterStage = 'magnific';
+
+// ── Data ──────────────────────────────────────────────────────────────────────
+
+async function loadData() {
+  try {
+    const r = await fetch("board_data.json?t=" + Date.now());
+    allTests = await r.json();
+    populateFilters();
+    renderGrid();
+  } catch(e) {
+    document.getElementById("grid").innerHTML =
+      '<div class="empty-state">No board_data.json found — run <code>python categorize.py</code> after dropping files in dump/.</div>';
+  }
+}
+
+// ── Filters ───────────────────────────────────────────────────────────────────
+
+function populateFilters() {
+  fillSelect("f-scene", [...new Set(allTests.map(t => t.scene))].sort());
+  fillSelect("f-img",   [...new Set(allTests.map(t => t.img))].sort());
+  fillSelect("f-vid",   [...new Set(allTests.map(t => t.vid))].sort());
+  fillSelect("f-pass",  [...new Set(allTests.map(t => t.pass))].sort());
+}
+
+function fillSelect(id, values) {
+  const el = document.getElementById(id);
+  const first = el.options[0];
+  el.innerHTML = "";
+  el.appendChild(first);
+  values.forEach(v => {
+    const o = document.createElement("option");
+    o.value = o.textContent = v;
+    el.appendChild(o);
+  });
+}
+
+// ── Grid ──────────────────────────────────────────────────────────────────────
+
+function renderGrid() {
+  const f = {
+    scene: document.getElementById("f-scene").value,
+    img:   document.getElementById("f-img").value,
+    vid:   document.getElementById("f-vid").value,
+    pass:  document.getElementById("f-pass").value,
+  };
+  const filtered = allTests.filter(t =>
+    (!f.scene || t.scene === f.scene) &&
+    (!f.img   || t.img   === f.img)   &&
+    (!f.vid   || t.vid   === f.vid)   &&
+    (!f.pass  || t.pass  === f.pass)
+  );
+
+  document.getElementById("result-count").textContent =
+    filtered.length + " / " + allTests.length + " tests";
+
+  const grid = document.getElementById("grid");
+  if (!filtered.length) {
+    grid.innerHTML = '<div class="empty-state">No tests match filters.</div>';
+    return;
+  }
+
+  grid.innerHTML = filtered.map(t => {
+    const thumb = t.files.magnific || t.files.imggen || t.files.frame;
+    const thumbHtml = thumb
+      ? `<img src="${thumb}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='<div class=no-thumb>No image</div>'">`
+      : `<div class="no-thumb">No image yet</div>`;
+    const score = t.score
+      ? `<div class="card-score">${t.score}<span>/10</span></div>`
+      : `<div class="card-score" style="color:#333">—<span>/10</span></div>`;
+    const notes = t.notes ? `<div class="card-notes">${t.notes}</div>` : "";
+
+    return `
+    <div class="card" onclick='openModal(${JSON.stringify(t).replace(/'/g, "&#39;")})'>
+      <div class="card-thumb">${thumbHtml}</div>
+      <div class="card-body">
+        <div class="card-id">${t.test_id}</div>
+        <div class="card-tags">
+          <span class="tag tag-scene">${t.scene}</span>
+          <span class="tag tag-pass">${t.pass}</span>
+          <span class="tag tag-img">${t.img}</span>
+          <span class="tag tag-vid">${t.vid}</span>
+        </div>
+        ${score}${notes}
+      </div>
+    </div>`;
+  }).join("");
+}
+
+["f-scene","f-img","f-vid","f-pass"].forEach(id =>
+  document.getElementById(id).addEventListener("change", renderGrid)
+);
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+
+function openModal(test) {
+  currentTest = test;
+  document.getElementById("modal-title").textContent = test.test_id;
+  document.getElementById("modal-notes").value = test.notes || "";
+
+  // Reset slider to centre
+  sliderPos = 50;
+  applySlider();
+
+  // Before = always source frame
+  document.getElementById("img-before").src = test.files.frame || "";
+  document.getElementById("label-before").textContent = "Source";
+
+  // Default after stage: prefer magnific, fall back to imggen
+  currentAfterStage = test.files.magnific ? "magnific" : "imggen";
+  setAfterStage(currentAfterStage);
+
+  // Stage buttons — disable if file missing
+  document.getElementById("btn-imggen").disabled   = !test.files.imggen;
+  document.getElementById("btn-magnific").disabled = !test.files.magnific;
+
+  // Video
+  const vid = document.getElementById("modal-video");
+  const noVidMsg = document.getElementById("no-video-msg");
+  if (test.files.video) {
+    vid.src = test.files.video;
+    vid.loop = document.getElementById("btn-loop").classList.contains("active");
+    vid.style.display = "";
+    noVidMsg.style.display = "none";
+  } else {
+    vid.src = "";
+    vid.style.display = "none";
+    noVidMsg.style.display = "";
+  }
+  document.getElementById("btn-play").textContent = "▶";
+
+  // Meta
+  document.getElementById("modal-meta").innerHTML = [
+    ["Scene",     test.scene],
+    ["Pass",      test.pass],
+    ["Img model", test.img],
+    ["Vid model", test.vid],
+    ["Prompt",    test.prompt],
+    ["Version",   test.version],
+    ["Date",      test.date],
+    ["Score",     test.score || "—"],
+  ].map(([k,v]) => `<div class="meta-item"><span class="meta-key">${k}</span><span class="meta-val">${v}</span></div>`).join("");
+
+  document.getElementById("modal-overlay").classList.add("open");
+  document.body.style.overflow = "hidden";
+}
+
+function setAfterStage(stage) {
+  if (!currentTest) return;
+  currentAfterStage = stage;
+  const src = currentTest.files[stage];
+  document.getElementById("img-after").src = src || "";
+  document.getElementById("label-after").textContent =
+    stage === "magnific" ? "Magnific" : "Image Gen";
+
+  document.querySelectorAll(".stage-btn").forEach(b => b.classList.remove("active"));
+  const btn = document.getElementById("btn-" + stage);
+  if (btn) btn.classList.add("active");
+}
+
+function closeModal() {
+  const vid = document.getElementById("modal-video");
+  vid.pause();
+  vid.src = "";
+  document.getElementById("modal-overlay").classList.remove("open");
+  document.body.style.overflow = "";
+  currentTest = null;
+}
+
+document.getElementById("modal-close").addEventListener("click", closeModal);
+document.getElementById("modal-overlay").addEventListener("click", e => {
+  if (e.target === document.getElementById("modal-overlay")) closeModal();
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+
+// ── Compare slider drag ───────────────────────────────────────────────────────
+
+function applySlider() {
+  const pct = sliderPos;
+  document.getElementById("compare-after").style.clipPath   = `inset(0 ${100 - pct}% 0 0)`;
+  document.getElementById("compare-divider").style.left     = pct + "%";
+  document.getElementById("compare-handle").style.left      = pct + "%";
+}
+
+function getSliderPct(e) {
+  const wrap = document.getElementById("compare-wrap");
+  const rect = wrap.getBoundingClientRect();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  return Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+}
+
+document.getElementById("compare-wrap").addEventListener("mousedown",  e => { isDragging = true; sliderPos = getSliderPct(e); applySlider(); });
+document.getElementById("compare-wrap").addEventListener("touchstart", e => { isDragging = true; sliderPos = getSliderPct(e); applySlider(); }, { passive: true });
+document.addEventListener("mousemove",  e => { if (!isDragging) return; sliderPos = getSliderPct(e); applySlider(); });
+document.addEventListener("touchmove",  e => { if (!isDragging) return; sliderPos = getSliderPct(e); applySlider(); }, { passive: true });
+document.addEventListener("mouseup",  () => isDragging = false);
+document.addEventListener("touchend", () => isDragging = false);
+
+// ── Video controls ────────────────────────────────────────────────────────────
+
+function togglePlay() {
+  const vid = document.getElementById("modal-video");
+  const btn = document.getElementById("btn-play");
+  if (!vid.src) return;
+  if (vid.paused) { vid.play(); btn.textContent = "⏸"; }
+  else            { vid.pause(); btn.textContent = "▶"; }
+}
+
+function toggleLoop() {
+  const vid = document.getElementById("modal-video");
+  const btn = document.getElementById("btn-loop");
+  vid.loop = !vid.loop;
+  btn.classList.toggle("active", vid.loop);
+}
+
+document.getElementById("modal-video").addEventListener("ended", () => {
+  document.getElementById("btn-play").textContent = "▶";
+});
+
+loadData();
+</script>
+</body>
+</html>

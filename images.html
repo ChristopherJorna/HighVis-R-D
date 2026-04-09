@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Images — HighVis R&D — Fivefold</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root { --orange: #c4622d; }
+
+body {
+  background: #0a0a0a;
+  color: #e0e0e0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* ── Nav ── */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 28px;
+  background: rgba(10,10,10,0.95);
+  border-bottom: 1px solid #1a1a1a;
+  backdrop-filter: blur(8px);
+}
+.nav-brand { display: flex; align-items: center; gap: 12px; }
+.nav-brand img { height: 80px; }
+.nav-brand span { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #fff; }
+.nav-links { display: flex; gap: 6px; }
+.nav-link {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
+  color: #888; text-decoration: none; padding: 6px 14px;
+  border: 1px solid #333; border-radius: 4px; transition: all 0.15s;
+}
+.nav-link:hover { color: #fff; border-color: #555; }
+.nav-link.active { color: var(--orange); border-color: var(--orange); }
+
+/* ── Page ── */
+main { padding: 80px 28px 60px; max-width: 1400px; margin: 0 auto; }
+
+h2 {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em;
+  color: #444; margin-bottom: 20px; margin-top: 48px;
+}
+h2:first-of-type { margin-top: 0; }
+
+/* ── Image compare slider ── */
+.ic-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  overflow: hidden;
+  cursor: col-resize;
+  background: #000;
+  user-select: none;
+  border-radius: 6px;
+}
+.ic-before, .ic-after {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+}
+.ic-before img, .ic-after img {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+}
+.ic-before { clip-path: inset(0 50% 0 0); z-index: 1; }
+.ic-divider {
+  position: absolute; top: 0; bottom: 0;
+  left: 50%; width: 2px;
+  background: rgba(255,255,255,0.7);
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 3;
+}
+.ic-handle {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 38px; height: 38px; border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+  backdrop-filter: blur(4px);
+  border: 2px solid rgba(255,255,255,0.6);
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+  z-index: 3;
+}
+.ic-handle svg { width: 16px; height: 16px; fill: #fff; }
+.ic-zone {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+.ic-label {
+  position: absolute; bottom: 14px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; padding: 4px 10px; border-radius: 3px;
+  background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);
+  pointer-events: none;
+  transition: color 0.2s;
+}
+.ic-label-left  { left: 14px; }
+.ic-label-right { right: 14px; }
+
+/* ── Grid of image outputs ── */
+.img-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.img-card {
+  background: #111;
+  border: 1px solid #1e1e1e;
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.img-card:hover { border-color: var(--orange); }
+.img-card img {
+  width: 100%;
+  aspect-ratio: 16/9;
+  object-fit: cover;
+  display: block;
+}
+.img-card-label {
+  padding: 10px 12px;
+  font-size: 11px; color: #666;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.img-card-label strong { color: #ccc; font-size: 12px; }
+
+/* ── Lightbox ── */
+#lightbox {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.95);
+  z-index: 300;
+  align-items: center; justify-content: center;
+}
+#lightbox.open { display: flex; }
+#lightbox img {
+  max-width: 95vw; max-height: 92vh;
+  object-fit: contain; border-radius: 4px;
+}
+#lb-close {
+  position: absolute; top: 20px; right: 24px;
+  background: none; border: none; color: #666;
+  font-size: 28px; cursor: pointer; line-height: 1;
+}
+#lb-close:hover { color: #fff; }
+#lb-label {
+  position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+  font-size: 11px; color: #555; letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ── Mobile ── */
+@media (max-width: 640px) {
+  nav {
+    padding: 10px 14px;
+  }
+  .nav-brand img {
+    height: 44px;
+  }
+  .nav-brand span {
+    display: none;
+  }
+  .nav-link {
+    padding: 5px 10px;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+  }
+
+  main {
+    padding: 68px 12px 40px;
+  }
+  .ic-label {
+    font-size: 9px;
+    padding: 3px 8px;
+    bottom: 10px;
+  }
+  .ic-label-left  { left: 10px; }
+  .ic-label-right { right: 10px; }
+  .ic-handle {
+    width: 48px;
+    height: 48px;
+  }
+
+  .img-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .img-card-label {
+    padding: 8px 10px;
+  }
+  .img-card-label strong {
+    font-size: 11px;
+  }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">
+    <img src="assets/fivefold-logo-transparent.png" alt="Fivefold">
+    <span>HighVis R&D</span>
+  </div>
+  <div class="nav-links">
+    <a href="index.html" class="nav-link">Comparisons</a>
+    <a href="images.html" class="nav-link active">Images</a>
+    <a href="pipeline.html" class="nav-link">Pipeline</a>
+    <a href="writeup.html" class="nav-link">Summary</a>
+  </div>
+</nav>
+
+<main>
+
+  <!-- Source → NB slider -->
+  <h2>Source Frame vs Image Generation</h2>
+  <div class="ic-wrap" id="ic-source-nb">
+    <div class="ic-before"><img src="scenes/SPACESHIP/tests/SPACESHIP_UT_NB_LM_P001_v01/source_frame.png" alt=""></div>
+    <div class="ic-after"><img  src="scenes/SPACESHIP/tests/SPACESHIP_UT_NB_LM_P001_v01/img_gen.png" alt=""></div>
+    <div class="ic-divider"></div>
+    <div class="ic-handle"><svg viewBox="0 0 24 24"><path d="M8 5l-7 7 7 7V5zm8 0v14l7-7-7-7z"/></svg></div>
+    <div class="ic-zone" data-side="left"><span class="ic-label ic-label-left">Unlit Source</span></div>
+    <div class="ic-zone" data-side="right"><span class="ic-label ic-label-right">Nano Banana Pro</span></div>
+  </div>
+
+  <!-- NB → Magnific slider -->
+  <h2 style="margin-top:32px">Image Gen vs Magnific Upscale</h2>
+  <div class="ic-wrap" id="ic-nb-mag">
+    <div class="ic-before"><img src="scenes/SPACESHIP/tests/SPACESHIP_UT_NB_LM_P001_v01/img_gen.png" alt=""></div>
+    <div class="ic-after"><img  src="scenes/SPACESHIP/tests/SPACESHIP_UT_NB_LM_P001_v01/img_magnific.png" alt=""></div>
+    <div class="ic-divider"></div>
+    <div class="ic-handle"><svg viewBox="0 0 24 24"><path d="M8 5l-7 7 7 7V5zm8 0v14l7-7-7-7z"/></svg></div>
+    <div class="ic-zone" data-side="left"><span class="ic-label ic-label-left">Nano Banana Pro</span></div>
+    <div class="ic-zone" data-side="right"><span class="ic-label ic-label-right">Magnific Upscale</span></div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <!-- SPACESHIP — All image outputs grid -->
+  <h2>Spaceship — All Image Outputs</h2>
+  <div class="img-grid">
+
+    <div class="img-card" onclick="openLightbox(this)">
+      <img src="scenes/SPACESHIP/tests/SPACESHIP_UT_NB_LM_P001_v01/source_frame.png" alt="">
+      <div class="img-card-label">
+        <strong>Source Frame</strong>
+        <span>Unlit render</span>
+      </div>
+    </div>
+
+    <div class="img-card" onclick="openLightbox(this)">
+      <img src="scenes/SPACESHIP/tests/SPACESHIP_UT_NB_LM_P001_v01/img_gen.png" alt="">
+      <div class="img-card-label">
+        <strong>Nano Banana Pro</strong>
+        <span>P001 · Image gen</span>
+      </div>
+    </div>
+
+    <div class="img-card" onclick="openLightbox(this)">
+      <img src="scenes/SPACESHIP/tests/SPACESHIP_UT_FL_XX_P001_v01/img_gen.png" alt="">
+      <div class="img-card-label">
+        <strong>Flux 2 Pro</strong>
+        <span>P001 · Image gen</span>
+      </div>
+    </div>
+
+    <div class="img-card" onclick="openLightbox(this)">
+      <img src="scenes/SPACESHIP/tests/SPACESHIP_UT_NB_LM_P001_v01/img_magnific.png" alt="">
+      <div class="img-card-label">
+        <strong>Magnific Upscale</strong>
+        <span>Based on Nano Banana</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <!-- CITYSCAPE — multi-step iteration section -->
+
+  <h2 style="margin-top:64px">Cityscape — Depth Map vs Flux 2 Pro</h2>
+  <div class="ic-wrap" id="ic-city-depth-flux">
+    <div class="ic-before"><img src="scenes/CITYSCAPE/tests/CITYSCAPE_DP_FL_KL_P003_v01/source_frame.png" alt=""></div>
+    <div class="ic-after"><img  src="scenes/CITYSCAPE/tests/CITYSCAPE_DP_FL_KL_P003_v01/img_gen_flux_base.png" alt=""></div>
+    <div class="ic-divider"></div>
+    <div class="ic-handle"><svg viewBox="0 0 24 24"><path d="M8 5l-7 7 7 7V5zm8 0v14l7-7-7-7z"/></svg></div>
+    <div class="ic-zone" data-side="left"><span class="ic-label ic-label-left">Depth Map</span></div>
+    <div class="ic-zone" data-side="right"><span class="ic-label ic-label-right">Flux 2 Pro</span></div>
+  </div>
+
+  <h2 style="margin-top:32px">Cityscape — NB Edit vs Magnific Upscale</h2>
+  <div class="ic-wrap" id="ic-city-nb-mag">
+    <div class="ic-before"><img src="scenes/CITYSCAPE/tests/CITYSCAPE_DP_FL_KL_P003_v01/img_gen.png" alt=""></div>
+    <div class="ic-after"><img  src="scenes/CITYSCAPE/tests/CITYSCAPE_DP_FL_KL_P003_v01/img_magnific.png" alt=""></div>
+    <div class="ic-divider"></div>
+    <div class="ic-handle"><svg viewBox="0 0 24 24"><path d="M8 5l-7 7 7 7V5zm8 0v14l7-7-7-7z"/></svg></div>
+    <div class="ic-zone" data-side="left"><span class="ic-label ic-label-left">NB Final Edit</span></div>
+    <div class="ic-zone" data-side="right"><span class="ic-label ic-label-right">Magnific Upscale</span></div>
+  </div>
+
+  <h2 style="margin-top:32px">Cityscape — Iteration Grid</h2>
+  <div class="img-grid">
+
+    <div class="img-card" onclick="openLightbox(this)">
+      <img src="scenes/CITYSCAPE/tests/CITYSCAPE_DP_FL_KL_P003_v01/source_frame.png" alt="">
+      <div class="img-card-label">
+        <strong>Depth Map Frame</strong>
+        <span>Unreal source</span>
+      </div>
+    </div>
+
+    <div class="img-card" onclick="openLightbox(this)">
+      <img src="scenes/CITYSCAPE/tests/CITYSCAPE_DP_FL_KL_P003_v01/img_gen_flux_base.png" alt="">
+      <div class="img-card-label">
+        <strong>Flux 2 Pro</strong>
+        <span>P003 · Base image</span>
+      </div>
+    </div>
+
+    <div class="img-card" onclick="openLightbox(this)">
+      <img src="scenes/CITYSCAPE/tests/CITYSCAPE_DP_FL_KL_P003_v01/img_gen.png" alt="">
+      <div class="img-card-label">
+        <strong>NB Final Edit</strong>
+        <span>P004 / P005 · Tower fix</span>
+      </div>
+    </div>
+
+    <div class="img-card" onclick="openLightbox(this)">
+      <img src="scenes/CITYSCAPE/tests/CITYSCAPE_DP_FL_KL_P003_v01/img_magnific.png" alt="">
+      <div class="img-card-label">
+        <strong>Magnific Upscale</strong>
+        <span>Final · Ready for video gen</span>
+      </div>
+    </div>
+
+  </div>
+
+</main>
+
+<!-- Lightbox -->
+<div id="lightbox">
+  <button id="lb-close" onclick="closeLightbox()">×</button>
+  <img id="lb-img" src="" alt="">
+  <span id="lb-label"></span>
+</div>
+
+<script>
+// ── Image comparison sliders ──────────────────────────────────────────────────
+function initSlider(id) {
+  const wrap      = document.getElementById(id);
+  const before    = wrap.querySelector(".ic-before");
+  const divider   = wrap.querySelector(".ic-divider");
+  const handle    = wrap.querySelector(".ic-handle");
+  const zoneLeft  = wrap.querySelector(".ic-zone[data-side='left']");
+  const zoneRight = wrap.querySelector(".ic-zone[data-side='right']");
+  const lblLeft   = zoneLeft.querySelector(".ic-label");
+  const lblRight  = zoneRight.querySelector(".ic-label");
+  const ORANGE = "var(--orange)";
+  const DIM    = "rgba(255,255,255,0.55)";
+  let pos = 50, dragging = false;
+
+  function apply(p) {
+    pos = Math.max(0, Math.min(100, p));
+    const clipLeft  = `inset(0 ${(100 - pos).toFixed(1)}% 0 0)`;
+    const clipRight = `inset(0 0 0 ${pos.toFixed(1)}%)`;
+    before.style.clipPath   = clipLeft;
+    zoneLeft.style.clipPath  = clipLeft;
+    zoneRight.style.clipPath = clipRight;
+    lblLeft.style.color  = pos >= 50 ? ORANGE : DIM;
+    lblRight.style.color = pos < 50  ? ORANGE : DIM;
+    divider.style.left   = pos + "%";
+    handle.style.left    = pos + "%";
+  }
+
+  function getP(e) {
+    const r = wrap.getBoundingClientRect();
+    const x = (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
+    return (x / r.width) * 100;
+  }
+
+  wrap.addEventListener("mousedown",  e => { dragging = true; apply(getP(e)); });
+  wrap.addEventListener("touchstart", e => { dragging = true; apply(getP(e)); }, { passive: true });
+  window.addEventListener("mousemove",  e => { if (dragging) apply(getP(e)); });
+  window.addEventListener("touchmove",  e => { if (dragging) apply(getP(e)); }, { passive: true });
+  window.addEventListener("mouseup",  () => dragging = false);
+  window.addEventListener("touchend", () => dragging = false);
+
+  apply(50);
+}
+
+initSlider("ic-source-nb");
+initSlider("ic-nb-mag");
+initSlider("ic-city-depth-flux");
+initSlider("ic-city-nb-mag");
+
+// ── Lightbox ──────────────────────────────────────────────────────────────────
+function openLightbox(card) {
+  const img   = card.querySelector("img");
+  const label = card.querySelector(".img-card-label strong").textContent;
+  document.getElementById("lb-img").src    = img.src;
+  document.getElementById("lb-label").textContent = label;
+  document.getElementById("lightbox").classList.add("open");
+  document.body.style.overflow = "hidden";
+}
+
+function closeLightbox() {
+  document.getElementById("lightbox").classList.remove("open");
+  document.body.style.overflow = "";
+}
+
+document.getElementById("lightbox").addEventListener("click", e => {
+  if (e.target === document.getElementById("lightbox")) closeLightbox();
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeLightbox(); });
+</script>
+</body>
+</html>

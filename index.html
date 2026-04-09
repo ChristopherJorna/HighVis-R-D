@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HighVis R&D — Fivefold</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root { --orange: #c4622d; }
+
+body {
+  background: #0a0a0a; color: #e0e0e0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  overflow-x: hidden;
+}
+
+/* ── Nav ── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 28px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, transparent 100%);
+}
+.nav-brand { display: flex; align-items: center; gap: 12px; }
+.nav-brand img { height: 80px; }
+.nav-brand span { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #fff; }
+.nav-links { display: flex; gap: 6px; }
+.nav-link {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
+  color: #888; text-decoration: none; padding: 6px 14px;
+  border: 1px solid #333; border-radius: 4px; transition: all 0.15s;
+}
+.nav-link:hover { color: #fff; border-color: #555; }
+.nav-link.active { color: var(--orange); border-color: var(--orange); }
+
+/* ── Video wrap ── */
+.vc-section { position: relative; width: 100%; }
+.vc-wrap {
+  position: relative; width: 100%; aspect-ratio: 16/9;
+  overflow: hidden; cursor: col-resize;
+  background: #000; user-select: none; -webkit-user-select: none;
+}
+.vc-right, .vc-left {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; display: block; pointer-events: none;
+}
+.vc-left { clip-path: inset(0 50% 0 0); z-index: 1; }
+
+.vc-divider {
+  position: absolute; top: 0; bottom: 0; left: 50%;
+  width: 2px; background: rgba(255,255,255,0.8);
+  transform: translateX(-50%); pointer-events: none; z-index: 3;
+}
+.vc-handle {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 42px; height: 42px; border-radius: 50%;
+  background: rgba(255,255,255,0.15); backdrop-filter: blur(4px);
+  border: 2px solid rgba(255,255,255,0.7);
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none; z-index: 3;
+}
+.vc-handle svg { width: 18px; height: 18px; fill: #fff; }
+
+.vc-label-zone { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+.vc-label {
+  position: absolute; bottom: 20px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.14em;
+  text-transform: uppercase; background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(4px); padding: 5px 12px; border-radius: 3px;
+  transition: color 0.2s; white-space: nowrap;
+}
+.vc-label-left  { left: 20px; }
+.vc-label-right { right: 20px; }
+
+/* ── Hero ── */
+.hero-overlay {
+  position: absolute; top: 0; left: 0; right: 0;
+  padding: 90px 28px 0; pointer-events: none; z-index: 10;
+}
+.hero-overlay h1 {
+  font-size: clamp(22px, 3.5vw, 48px); font-weight: 700; color: #fff;
+  letter-spacing: -0.02em; line-height: 1.1;
+  text-shadow: 0 2px 20px rgba(0,0,0,0.6);
+}
+.hero-overlay p {
+  font-size: 12px; color: rgba(255,255,255,0.5);
+  margin-top: 6px; letter-spacing: 0.06em; text-transform: uppercase;
+}
+.scroll-hint {
+  position: absolute; bottom: 20px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  color: rgba(255,255,255,0.4); font-size: 10px;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  pointer-events: none; animation: bounce 2s ease-in-out infinite;
+}
+.scroll-hint svg { width: 16px; height: 16px; fill: currentColor; }
+@keyframes bounce {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50%       { transform: translateX(-50%) translateY(6px); }
+}
+
+/* ── Info bar — 3-column: left select | center info | right select ── */
+.vc-info {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+  background: #111; border-bottom: 1px solid #1a1a1a;
+}
+.vc-info-center {
+  display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center;
+}
+.vc-scene { font-size: 10px; color: #444; text-transform: uppercase; letter-spacing: 0.1em; }
+.vc-subtitle { font-size: 11px; color: #444; letter-spacing: 0.03em; }
+.vc-tags { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.vc-tag {
+  font-size: 10px; padding: 2px 8px; border-radius: 3px;
+  border: 1px solid #2a2a2a; color: #555;
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.prompt-btn {
+  background: none; border: 1px solid #2a2a2a; color: #555;
+  font-family: inherit; font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.1em; padding: 3px 10px; border-radius: 3px;
+  cursor: pointer; transition: all 0.15s;
+}
+.prompt-btn:hover { color: #ccc; border-color: #555; }
+.prompt-btn.open  { color: var(--orange); border-color: var(--orange); }
+
+/* ── Select groups ── */
+.select-group { display: flex; flex-direction: column; gap: 5px; }
+.select-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444; }
+.model-select {
+  background: #1a1a1a; border: 2px solid var(--orange);
+  color: #fff; font-size: 13px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  padding: 6px 12px; border-radius: 4px; cursor: pointer;
+  outline: none; font-family: inherit;
+}
+.model-select:hover { background: #222; }
+.model-select option { background: #1a1a1a; color: #fff; }
+.model-select.single { border-color: #2a2a2a; color: #666; pointer-events: none; }
+
+/* ── Prompt panel ── */
+.prompt-panel {
+  display: none; background: #0d0d0d;
+  border-bottom: 1px solid #1a1a1a;
+  padding: 20px 24px;
+}
+.prompt-panel.open { display: block; }
+.prompt-block { margin-bottom: 20px; }
+.prompt-block:last-child { margin-bottom: 0; }
+.prompt-block h4 {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em;
+  color: var(--orange); margin-bottom: 10px;
+}
+.prompt-block pre {
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 11px; line-height: 1.7; color: #666;
+  white-space: pre-wrap; word-break: break-word;
+}
+
+/* ── Mobile ── */
+@media (max-width: 640px) {
+  nav { padding: 10px 14px; }
+  .nav-brand img { height: 44px; }
+  .nav-brand span { display: none; }
+  .nav-link { padding: 5px 10px; font-size: 10px; letter-spacing: 0.06em; }
+
+  .vc-info {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    padding: 12px 14px; gap: 12px;
+  }
+  .vc-info-center { align-items: flex-start; text-align: left; }
+  .vc-tags { justify-content: flex-start; }
+  .model-select { font-size: 11px; padding: 5px 10px; }
+  .vc-label { font-size: 9px; padding: 3px 8px; bottom: 10px; }
+  .vc-label-left  { left: 10px; }
+  .vc-label-right { right: 10px; }
+  .vc-handle { width: 48px; height: 48px; }
+  .hero-overlay { padding: 60px 16px 0; }
+  .prompt-panel { padding: 14px 16px; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">
+    <img src="assets/fivefold-logo-transparent.png" alt="Fivefold">
+    <span>HighVis R&D</span>
+  </div>
+  <div class="nav-links">
+    <a href="index.html" class="nav-link active">Comparisons</a>
+    <a href="images.html" class="nav-link">Images</a>
+    <a href="pipeline.html" class="nav-link">Pipeline</a>
+    <a href="writeup.html" class="nav-link">Summary</a>
+  </div>
+</nav>
+
+<div id="sections"></div>
+
+<script>
+const SCENES = [
+  {
+    key:      "SPACESHIP",
+    title:    "Spaceship",
+    subtitle: "Untextured Unreal → NB imggen → Magnific → Video",
+    tags:     ["UT Pass", "NB", "Magnific", "P001"],
+    left: [
+      { label: "Unlit Render", src: "scenes/SPACESHIP/unlit.mp4" },
+      { label: "Lit Render",   src: "scenes/SPACESHIP/lit.mp4"   },
+    ],
+    right: [
+      { label: "Kling o1",    src: "scenes/SPACESHIP/tests/SPACESHIP_UT_NB_KL_P001_v01/video_output.mp4" },
+      { label: "Luma Modify", src: "scenes/SPACESHIP/tests/SPACESHIP_UT_NB_LM_P001_v01/video_output.mp4" },
+      { label: "Wan 2.7",     src: "scenes/SPACESHIP/tests/SPACESHIP_UT_NB_WN_P001_v01/video_output.mp4" },
+    ],
+    prompts: [
+      { label: "P001 — Image Gen", file: "prompts/P001.md" },
+      { label: "P002 — Video Gen", file: "prompts/P002.md" },
+    ],
+    showScrollHint: true,
+  },
+  {
+    key:      "CITYSCAPE",
+    title:    "Cityscape — Riyadh",
+    subtitle: "Depth Map → FL imggen → NB edit → Magnific → Video",
+    tags:     ["DP Pass", "FL + NB", "Magnific", "P003"],
+    left: [
+      { label: "Depth Map", src: "scenes/CITYSCAPE/depth.mp4" },
+    ],
+    right: [
+      { label: "Kling o1", src: "scenes/CITYSCAPE/tests/CITYSCAPE_DP_FL_KL_P003_v01/video_output.mp4" },
+    ],
+    prompts: [
+      { label: "P003 — Image Gen", file: "prompts/P003.md" },
+      { label: "P006 — Video Gen", file: "prompts/P006.md" },
+    ],
+    showScrollHint: false,
+  },
+];
+
+const container = document.getElementById("sections");
+SCENES.forEach((cfg, idx) => buildScene(cfg, idx, container));
+
+function buildScene(cfg, idx, container) {
+  const leftOpts  = cfg.left.map((o, i)  => `<option value="${i}">${o.label}</option>`).join("");
+  const rightOpts = cfg.right.map((o, i) => `<option value="${i}">${o.label}</option>`).join("");
+  const leftSingle  = cfg.left.length  === 1;
+  const rightSingle = cfg.right.length === 1;
+
+  const section = document.createElement("div");
+  section.className = "vc-section";
+  section.id = `scene-${cfg.key}`;
+
+  section.innerHTML = `
+    <div class="vc-wrap" id="vc-${idx}">
+      <video class="vc-right" id="vr-${idx}" src="${cfg.right[0].src}" autoplay muted loop playsinline></video>
+      <video class="vc-left"  id="vl-${idx}" src="${cfg.left[0].src}"  autoplay muted loop playsinline></video>
+      <div class="vc-divider" id="vd-${idx}"></div>
+      <div class="vc-handle"  id="vh-${idx}">
+        <svg viewBox="0 0 24 24"><path d="M8 5l-7 7 7 7V5zm8 0v14l7-7-7-7z"/></svg>
+      </div>
+      <div class="vc-label-zone" id="ll-${idx}">
+        <span class="vc-label vc-label-left" id="lbl-l-${idx}">${cfg.left[0].label}</span>
+      </div>
+      <div class="vc-label-zone" id="lr-${idx}">
+        <span class="vc-label vc-label-right" id="lbl-r-${idx}">${cfg.right[0].label}</span>
+      </div>
+      <div class="hero-overlay">
+        <h1>${cfg.title}</h1>
+        <p>${cfg.subtitle}</p>
+      </div>
+      ${cfg.showScrollHint ? `
+      <div class="scroll-hint">
+        <svg viewBox="0 0 24 24"><path d="M12 16l-6-6h12z"/></svg>
+        scroll
+      </div>` : ""}
+    </div>
+
+    <div class="vc-info">
+      <!-- Left dropdown -->
+      <div class="select-group">
+        <span class="select-label">Left side</span>
+        <select id="sel-l-${idx}" class="model-select${leftSingle ? " single" : ""}"
+                ${leftSingle ? "disabled" : ""}>${leftOpts}</select>
+      </div>
+
+      <!-- Center: scene info + prompt toggle -->
+      <div class="vc-info-center">
+        <span class="vc-scene">${cfg.key}</span>
+        <div class="vc-tags">
+          ${cfg.tags.map(t => `<span class="vc-tag">${t}</span>`).join("")}
+        </div>
+        <button class="prompt-btn" id="pbtn-${idx}">Prompt ▾</button>
+      </div>
+
+      <!-- Right dropdown -->
+      <div class="select-group">
+        <span class="select-label">Right side</span>
+        <select id="sel-r-${idx}" class="model-select${rightSingle ? " single" : ""}"
+                ${rightSingle ? "disabled" : ""}>${rightOpts}</select>
+      </div>
+    </div>
+
+    <!-- Prompt panel -->
+    <div class="prompt-panel" id="ppanel-${idx}">
+      <p style="font-size:11px;color:#555;font-style:italic">Loading prompts...</p>
+    </div>
+  `;
+
+  container.appendChild(section);
+  initSlider(idx, cfg);
+  initPromptToggle(idx, cfg);
+}
+
+// ── Prompt toggle ─────────────────────────────────────────────────────────
+function initPromptToggle(idx, cfg) {
+  const btn   = document.getElementById(`pbtn-${idx}`);
+  const panel = document.getElementById(`ppanel-${idx}`);
+  let loaded  = false;
+
+  btn.addEventListener("click", async () => {
+    const isOpen = panel.classList.toggle("open");
+    btn.classList.toggle("open", isOpen);
+    btn.textContent = isOpen ? "Prompt ▴" : "Prompt ▾";
+
+    if (isOpen && !loaded) {
+      loaded = true;
+      const blocks = await Promise.all(cfg.prompts.map(async p => {
+        try {
+          const r = await fetch(p.file);
+          const text = await r.text();
+          const m = text.match(/```\n([\s\S]*?)```/);
+          const content = m ? m[1].trim() : text.trim();
+          return `<div class="prompt-block"><h4>${p.label}</h4><pre>${escHtml(content)}</pre></div>`;
+        } catch {
+          return `<div class="prompt-block"><h4>${p.label}</h4><pre style="color:#444">Not found</pre></div>`;
+        }
+      }));
+      panel.innerHTML = blocks.join("");
+    }
+  });
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+// ── Slider + sync ─────────────────────────────────────────────────────────
+function initSlider(idx, cfg) {
+  const wrap     = document.getElementById(`vc-${idx}`);
+  const leftVid  = document.getElementById(`vl-${idx}`);
+  const rightVid = document.getElementById(`vr-${idx}`);
+  const divider  = document.getElementById(`vd-${idx}`);
+  const handle   = document.getElementById(`vh-${idx}`);
+  const zoneLeft  = document.getElementById(`ll-${idx}`);
+  const zoneRight = document.getElementById(`lr-${idx}`);
+  const lblLeft   = document.getElementById(`lbl-l-${idx}`);
+  const lblRight  = document.getElementById(`lbl-r-${idx}`);
+  const selLeft   = document.getElementById(`sel-l-${idx}`);
+  const selRight  = document.getElementById(`sel-r-${idx}`);
+
+  const ORANGE = "var(--orange)", DIM = "rgba(255,255,255,0.55)";
+
+  function swapVideo(vid, src, cb) {
+    vid.src = src; vid.load();
+    vid.addEventListener("canplay", function once() {
+      vid.removeEventListener("canplay", once); cb();
+    });
+  }
+
+  selLeft && selLeft.addEventListener("change", function () {
+    const opt = cfg.left[+this.value];
+    lblLeft.textContent = opt.label;
+    swapVideo(leftVid, opt.src, () => {
+      leftVid.currentTime = rightVid.currentTime;
+      leftVid.play().catch(() => {});
+    });
+  });
+
+  selRight && selRight.addEventListener("change", function () {
+    const opt = cfg.right[+this.value];
+    lblRight.textContent = opt.label;
+    swapVideo(rightVid, opt.src, () => {
+      rightVid.currentTime = 0; leftVid.currentTime = 0;
+      rightVid.play().catch(() => {}); leftVid.play().catch(() => {});
+    });
+  });
+
+  function syncVideos() {
+    const drift = rightVid.currentTime - leftVid.currentTime;
+    if (Math.abs(drift) > 0.5) {
+      leftVid.currentTime = rightVid.currentTime; leftVid.playbackRate = 1.0;
+    } else if (drift > 0.042) { leftVid.playbackRate = 1.03; }
+    else if (drift < -0.042)  { leftVid.playbackRate = 0.97; }
+    else                      { leftVid.playbackRate = 1.0; }
+  }
+
+  let pos = 50, dragging = false;
+  let autoActive = true, autoResumeTimer = null;
+  let autoPos = 50, autoDir = 1, autoPause = 0;
+
+  function applyPos(p) {
+    pos = Math.max(0, Math.min(100, p));
+    const clipL = `inset(0 ${(100 - pos).toFixed(2)}% 0 0)`;
+    const clipR = `inset(0 0 0 ${pos.toFixed(2)}%)`;
+    leftVid.style.clipPath      = clipL;
+    zoneLeft.style.clipPath     = clipL;
+    zoneRight.style.clipPath    = clipR;
+    lblLeft.style.color  = pos >= 50 ? ORANGE : DIM;
+    lblRight.style.color = pos <  50 ? ORANGE : DIM;
+    divider.style.left = pos + "%";
+    handle.style.left  = pos + "%";
+  }
+
+  function tick() {
+    syncVideos();
+    if (autoActive && !dragging) {
+      if (autoPause > 0) { autoPause--; }
+      else {
+        autoPos += autoDir * 0.12;
+        if (autoPos >= 80) { autoDir = -1; autoPause = 90; }
+        if (autoPos <= 20) { autoDir =  1; autoPause = 90; }
+        applyPos(autoPos);
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+  tick();
+
+  function getPct(e) {
+    const r = wrap.getBoundingClientRect();
+    return ((e.touches ? e.touches[0].clientX : e.clientX) - r.left) / r.width * 100;
+  }
+  function startDrag(e) { dragging = true; autoActive = false; clearTimeout(autoResumeTimer); applyPos(getPct(e)); }
+  function doDrag(e)     { if (dragging) applyPos(getPct(e)); }
+  function stopDrag()    {
+    if (!dragging) return; dragging = false;
+    autoResumeTimer = setTimeout(() => { autoPos = pos; autoActive = true; }, 3000);
+  }
+
+  wrap.addEventListener("mousedown",  startDrag);
+  wrap.addEventListener("touchstart", startDrag, { passive: true });
+  window.addEventListener("mousemove", doDrag);
+  window.addEventListener("touchmove", doDrag, { passive: true });
+  window.addEventListener("mouseup",  stopDrag);
+  window.addEventListener("touchend", stopDrag);
+
+  new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      [leftVid, rightVid].forEach(v => e.isIntersecting ? v.play().catch(()=>{}) : v.pause());
+    });
+  }, { threshold: 0.1 }).observe(wrap);
+
+  applyPos(50);
+}
+</script>
+</body>
+</html>

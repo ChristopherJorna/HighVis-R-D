@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pipeline — HighVis R&D — Fivefold</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root { --orange: #c4622d; --bg: #141414; --card: #1c1c1c; --border: #2a2a2a; }
+
+body {
+  background: var(--bg);
+  color: #ccc;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  min-height: 100vh;
+  overflow-x: auto;
+}
+
+/* ── Nav ── */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 28px;
+  background: rgba(20,20,20,0.95);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+}
+.nav-brand { display: flex; align-items: center; gap: 12px; }
+.nav-brand img { height: 28px;  }
+.nav-brand span { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #fff; }
+.nav-links { display: flex; gap: 6px; }
+.nav-link {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
+  color: #888; text-decoration: none; padding: 6px 14px;
+  border: 1px solid #333; border-radius: 4px; transition: all 0.15s;
+}
+.nav-link:hover { color: #fff; border-color: #555; }
+.nav-link.active { color: var(--orange); border-color: var(--orange); }
+
+/* ── Canvas ── */
+#canvas {
+  position: relative;
+  padding: 90px 60px 60px;
+  min-height: 100vh;
+}
+
+/* SVG lines layer */
+#lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Node layout — columns ── */
+#graph {
+  position: relative;
+  display: flex;
+  gap: 60px;
+  align-items: flex-start;
+  z-index: 1;
+  min-width: 1100px;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex-shrink: 0;
+}
+
+/* ── Node card ── */
+.node {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 220px;
+  overflow: hidden;
+  position: relative;
+}
+.node:hover { border-color: #444; }
+
+.node-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.node-icon {
+  width: 18px; height: 18px;
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; flex-shrink: 0;
+}
+.node-title { font-size: 12px; font-weight: 600; color: #e0e0e0; }
+.node-sub   { font-size: 10px; color: #555; margin-top: 1px; }
+
+/* Port dots */
+.port-out, .port-in {
+  position: absolute;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--bg);
+  top: 50%;
+  transform: translateY(-50%);
+}
+.port-out { right: -5px; }
+.port-in  { left: -5px; }
+
+/* Prompt node */
+.node-prompt .node-icon { background: #2d1f3d; color: #a78bfa; }
+.node-prompt .port-out  { background: #a78bfa; }
+.prompt-body {
+  padding: 10px 12px;
+  font-size: 10px;
+  color: #666;
+  line-height: 1.55;
+  max-height: 110px;
+  overflow: hidden;
+  position: relative;
+}
+.prompt-body::after {
+  content: "";
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 28px;
+  background: linear-gradient(to bottom, transparent, var(--card));
+}
+
+/* Media/input node */
+.node-media .node-icon { background: #1a2a1a; color: #4ade80; }
+.node-media .port-out  { background: #4ade80; }
+.media-thumb {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #000;
+  overflow: hidden;
+}
+.media-thumb img, .media-thumb video {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.media-thumb .no-media {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  color: #2a2a2a; font-size: 10px;
+}
+.media-label {
+  padding: 8px 12px;
+  font-size: 10px;
+  color: #555;
+  font-family: monospace;
+  word-break: break-all;
+}
+
+/* Image model node */
+.node-imgmodel .node-icon { background: #1a1a2d; color: #818cf8; }
+.node-imgmodel .port-in   { background: #818cf8; }
+.node-imgmodel .port-out  { background: #14b8a6; }
+
+/* Video model node */
+.node-vidmodel .node-icon { background: #1e100a; color: var(--orange); }
+.node-vidmodel .port-in   { background: #14b8a6; }
+.node-vidmodel .port-out  { background: var(--orange); }
+
+/* Magnific node */
+.node-magnific .node-icon { background: #1a1a1a; color: #e2e8f0; }
+.node-magnific .port-in   { background: #818cf8; }
+.node-magnific .port-out  { background: #14b8a6; }
+
+/* Node run badge */
+.node-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 8px 12px 10px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.badge-complete { background: #0d2a1a; color: #4ade80; border: 1px solid #1a4a2a; }
+.badge-imgonly  { background: #1a1a2d; color: #818cf8; border: 1px solid #2a2a4a; }
+
+/* ── SVG lines ── */
+path.line {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+circle.dot { r: 4; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">
+    <img src="assets/fivefold-logo-transparent.png" alt="Fivefold">
+    <span>HighVis R&D</span>
+  </div>
+  <div class="nav-links">
+    <a href="index.html" class="nav-link">Comparisons</a>
+    <a href="images.html" class="nav-link">Images</a>
+    <a href="pipeline.html" class="nav-link active">Pipeline</a>
+  </div>
+</nav>
+
+<div id="canvas">
+  <svg id="lines"></svg>
+  <div id="graph">
+
+    <!-- Col 1: Inputs -->
+    <div class="col" id="col-inputs">
+
+      <div class="node node-prompt" id="node-p001">
+        <div class="node-header">
+          <div class="node-icon">P</div>
+          <div><div class="node-title">Prompt P001</div><div class="node-sub">Image generation</div></div>
+        </div>
+        <div class="prompt-body" id="p001-text">Loading…</div>
+        <div class="port-out" style="top:28px; transform:none;"></div>
+      </div>
+
+      <div class="node node-media" id="node-frame">
+        <div class="node-header">
+          <div class="node-icon">🖼</div>
+          <div><div class="node-title">Unlit Frame</div><div class="node-sub">Source — first frame</div></div>
+        </div>
+        <div class="media-thumb">
+          <img src="scenes/SPACESHIP/tests/SPACESHIP_UT_NB_LM_P001_v01/source_frame.png"
+               onerror="this.parentElement.innerHTML='<div class=no-media>source_frame.png</div>'" alt="">
+        </div>
+        <div class="media-label">Spaceship_unlitstartframe.png</div>
+        <div class="port-out"></div>
+      </div>
+
+      <div class="node node-media" id="node-unlitvid">
+        <div class="node-header">
+          <div class="node-icon">▶</div>
+          <div><div class="node-title">Unlit Video</div><div class="node-sub">Source render</div></div>
+        </div>
+        <div class="media-thumb">
+          <video src="scenes/SPACESHIP/unlit.mp4" muted loop autoplay playsinline
+                 onerror="this.parentElement.innerHTML='<div class=no-media>unlit.mp4 — add to scenes/SPACESHIP/</div>'"></video>
+        </div>
+        <div class="media-label">NewLevelSequence.Unlit.mp4</div>
+        <div class="port-out"></div>
+      </div>
+
+    </div>
+
+    <!-- Col 2: Image gen -->
+    <div class="col" id="col-imggen">
+
+      <div class="node node-imgmodel" id="node-nb">
+        <div class="node-header">
+          <div class="node-icon">Δ</div>
+          <div><div class="node-title">Nano Banana Pro</div><div class="node-sub">Image model</div></div>
+        </div>
+        <div class="media-thumb">
+          <img src="scenes/SPACESHIP/tests/SPACESHIP_UT_NB_LM_P001_v01/img_gen.png"
+               onerror="this.parentElement.innerHTML='<div class=no-media>img_gen.png</div>'" alt="">
+        </div>
+        <span class="node-badge badge-complete">✓ Generated</span>
+        <div class="port-in"></div>
+        <div class="port-out"></div>
+      </div>
+
+      <div class="node node-imgmodel" id="node-fl">
+        <div class="node-header">
+          <div class="node-icon">Δ</div>
+          <div><div class="node-title">Flux 2 Pro</div><div class="node-sub">Image model</div></div>
+        </div>
+        <div class="media-thumb">
+          <img src="scenes/SPACESHIP/tests/SPACESHIP_UT_FL_XX_P001_v01/img_gen.png"
+               onerror="this.parentElement.innerHTML='<div class=no-media>img_gen.png</div>'" alt="">
+        </div>
+        <span class="node-badge badge-imgonly">Image only</span>
+        <div class="port-in"></div>
+      </div>
+
+    </div>
+
+    <!-- Col 3: Upscale + P002 -->
+    <div class="col" id="col-upscale">
+
+      <div class="node node-magnific" id="node-mag">
+        <div class="node-header">
+          <div class="node-icon">↑</div>
+          <div><div class="node-title">Magnific</div><div class="node-sub">Precision upscale</div></div>
+        </div>
+        <div class="media-thumb">
+          <img src="scenes/SPACESHIP/tests/SPACESHIP_UT_NB_LM_P001_v01/img_magnific.png"
+               onerror="this.parentElement.innerHTML='<div class=no-media>img_magnific.png</div>'" alt="">
+        </div>
+        <span class="node-badge badge-complete">✓ Upscaled</span>
+        <div class="port-in"></div>
+        <div class="port-out"></div>
+      </div>
+
+      <div class="node node-prompt" id="node-p002">
+        <div class="node-header">
+          <div class="node-icon">P</div>
+          <div><div class="node-title">Prompt P002</div><div class="node-sub">Video generation</div></div>
+        </div>
+        <div class="prompt-body" id="p002-text">Loading…</div>
+        <div class="port-out" style="top:28px; transform:none;"></div>
+      </div>
+
+    </div>
+
+    <!-- Col 4: Video models -->
+    <div class="col" id="col-vidgen">
+
+      <div class="node node-vidmodel" id="node-lm">
+        <div class="node-header">
+          <div class="node-icon">▶</div>
+          <div><div class="node-title">Luma Modify</div><div class="node-sub">Video model</div></div>
+        </div>
+        <div class="media-thumb">
+          <video src="scenes/SPACESHIP/tests/SPACESHIP_UT_NB_LM_P001_v01/video_output.mp4"
+                 muted loop autoplay playsinline
+                 onerror="this.parentElement.innerHTML='<div class=no-media>video_output.mp4</div>'"></video>
+        </div>
+        <span class="node-badge badge-complete">✓ Rendered</span>
+        <div class="port-in"></div>
+      </div>
+
+      <div class="node node-vidmodel" id="node-kl">
+        <div class="node-header">
+          <div class="node-icon">▶</div>
+          <div><div class="node-title">Kling o1</div><div class="node-sub">Video model</div></div>
+        </div>
+        <div class="media-thumb">
+          <video src="scenes/SPACESHIP/tests/SPACESHIP_UT_NB_KL_P001_v01/video_output.mp4"
+                 muted loop autoplay playsinline
+                 onerror="this.parentElement.innerHTML='<div class=no-media>video_output.mp4</div>'"></video>
+        </div>
+        <span class="node-badge badge-complete">✓ Rendered</span>
+        <div class="port-in"></div>
+      </div>
+
+      <div class="node node-vidmodel" id="node-wn">
+        <div class="node-header">
+          <div class="node-icon">▶</div>
+          <div><div class="node-title">Wan 2.7</div><div class="node-sub">Video model</div></div>
+        </div>
+        <div class="media-thumb">
+          <video src="scenes/SPACESHIP/tests/SPACESHIP_UT_NB_WN_P001_v01/video_output.mp4"
+                 muted loop autoplay playsinline
+                 onerror="this.parentElement.innerHTML='<div class=no-media>video_output.mp4</div>'"></video>
+        </div>
+        <span class="node-badge badge-complete">✓ Rendered</span>
+        <div class="port-in"></div>
+      </div>
+
+    </div>
+
+  </div><!-- #graph -->
+</div><!-- #canvas -->
+
+<script>
+// ── Load prompt text ──────────────────────────────────────────────────────────
+async function loadPrompts() {
+  try {
+    const p1 = await fetch("prompts/P001.md");
+    const t1 = await p1.text();
+    const body1 = t1.match(/```([\s\S]*?)```/);
+    if (body1) document.getElementById("p001-text").textContent = body1[1].trim().slice(0, 300);
+  } catch(e) {}
+
+  try {
+    const p2 = await fetch("prompts/P002.md");
+    const t2 = await p2.text();
+    const body2 = t2.match(/```([\s\S]*?)```/);
+    if (body2) document.getElementById("p002-text").textContent = body2[1].trim().slice(0, 300);
+  } catch(e) {}
+}
+
+// ── Draw SVG connection lines ─────────────────────────────────────────────────
+function portPos(nodeId, side, portTop) {
+  const canvas = document.getElementById("canvas");
+  const node   = document.getElementById(nodeId);
+  if (!node) return null;
+  const cr = canvas.getBoundingClientRect();
+  const nr = node.getBoundingClientRect();
+  const scrollX = canvas.scrollLeft || 0;
+  const scrollY = window.scrollY || 0;
+
+  const x = side === "out"
+    ? (nr.right  - cr.left + scrollX)
+    : (nr.left   - cr.left + scrollX);
+
+  const y = portTop != null
+    ? (nr.top - cr.top + scrollY + portTop + 5)
+    : (nr.top - cr.top + scrollY + nr.height / 2);
+
+  return { x, y };
+}
+
+function bezier(svg, from, to, color) {
+  if (!from || !to) return;
+  const dx = (to.x - from.x) * 0.5;
+  const d  = `M ${from.x} ${from.y} C ${from.x + dx} ${from.y}, ${to.x - dx} ${to.y}, ${to.x} ${to.y}`;
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", d);
+  path.setAttribute("class", "line");
+  path.setAttribute("stroke", color);
+  path.setAttribute("opacity", "0.6");
+  svg.appendChild(path);
+
+  // Endpoint dots
+  [from, to].forEach(pt => {
+    const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    c.setAttribute("cx", pt.x);
+    c.setAttribute("cy", pt.y);
+    c.setAttribute("r",  "3.5");
+    c.setAttribute("fill", color);
+    c.setAttribute("opacity", "0.8");
+    svg.appendChild(c);
+  });
+}
+
+function drawLines() {
+  const svg = document.getElementById("lines");
+  const canvas = document.getElementById("canvas");
+  svg.innerHTML = "";
+  svg.setAttribute("width",  canvas.scrollWidth);
+  svg.setAttribute("height", canvas.scrollHeight);
+
+  const PURPLE = "#a78bfa";
+  const TEAL   = "#14b8a6";
+  const ORANGE = "#c4622d";
+
+  // P001 → NB, FL (prompt connections — purple, from top of prompt node)
+  bezier(svg, portPos("node-p001", "out", 18), portPos("node-nb",  "in"), PURPLE);
+  bezier(svg, portPos("node-p001", "out", 18), portPos("node-fl",  "in"), PURPLE);
+
+  // Unlit Frame → NB, FL (green)
+  bezier(svg, portPos("node-frame", "out"), portPos("node-nb", "in"), TEAL);
+  bezier(svg, portPos("node-frame", "out"), portPos("node-fl", "in"), TEAL);
+
+  // NB → Magnific (purple)
+  bezier(svg, portPos("node-nb",  "out"), portPos("node-mag", "in"), PURPLE);
+
+  // Magnific → Luma, Kling, Wan (teal)
+  bezier(svg, portPos("node-mag", "out"), portPos("node-lm", "in"), TEAL);
+  bezier(svg, portPos("node-mag", "out"), portPos("node-kl", "in"), TEAL);
+  bezier(svg, portPos("node-mag", "out"), portPos("node-wn", "in"), TEAL);
+
+  // Unlit Video → Luma, Kling, Wan (green)
+  bezier(svg, portPos("node-unlitvid", "out"), portPos("node-lm", "in"), TEAL);
+  bezier(svg, portPos("node-unlitvid", "out"), portPos("node-kl", "in"), TEAL);
+  bezier(svg, portPos("node-unlitvid", "out"), portPos("node-wn", "in"), TEAL);
+
+  // P002 → Luma, Kling, Wan (purple, from top of prompt node)
+  bezier(svg, portPos("node-p002", "out", 18), portPos("node-lm", "in"), PURPLE);
+  bezier(svg, portPos("node-p002", "out", 18), portPos("node-kl", "in"), PURPLE);
+  bezier(svg, portPos("node-p002", "out", 18), portPos("node-wn", "in"), PURPLE);
+}
+
+// Redraw on resize, redraw after images load
+window.addEventListener("resize", drawLines);
+document.querySelectorAll("img, video").forEach(el => {
+  el.addEventListener("load",      drawLines);
+  el.addEventListener("loadeddata",drawLines);
+});
+
+loadPrompts().then(() => {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(drawLines);
+  });
+});
+setTimeout(drawLines, 600); // fallback
+</script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+# Raw source dump — not part of the website
+dump/
+
+# FFmpeg test exports — debugging artifacts
+exports/test_*.mp4
+
+# Python scripts — not needed for the site
+render_wipe.py
+categorize.py
+
+# MARVIN internal tools — not part of the site
+tools/
+
+# Local server / OS junk
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db

@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Summary — HighVis R&D — Fivefold</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root { --orange: #c4622d; }
+
+body {
+  background: #0a0a0a; color: #e0e0e0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 28px;
+  background: rgba(10,10,10,0.95); border-bottom: 1px solid #1a1a1a;
+  backdrop-filter: blur(8px);
+}
+.nav-brand { display: flex; align-items: center; gap: 12px; }
+.nav-brand img { height: 80px; }
+.nav-brand span { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #fff; }
+.nav-links { display: flex; gap: 6px; }
+.nav-link {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
+  color: #888; text-decoration: none; padding: 6px 14px;
+  border: 1px solid #333; border-radius: 4px; transition: all 0.15s;
+}
+.nav-link:hover { color: #fff; border-color: #555; }
+.nav-link.active { color: var(--orange); border-color: var(--orange); }
+
+main { max-width: 820px; margin: 0 auto; padding: 120px 28px 80px; }
+
+.eyebrow {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.18em;
+  color: var(--orange); margin-bottom: 16px;
+}
+h1 {
+  font-size: clamp(28px, 4vw, 48px); font-weight: 700; color: #fff;
+  letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 12px;
+}
+.dateline {
+  font-size: 11px; color: #444; letter-spacing: 0.06em;
+  text-transform: uppercase; margin-bottom: 48px;
+}
+h2 { font-size: 18px; font-weight: 600; color: #fff; margin: 48px 0 16px; letter-spacing: -0.01em; }
+h3 { font-size: 13px; font-weight: 600; color: var(--orange); text-transform: uppercase; letter-spacing: 0.1em; margin: 28px 0 10px; }
+p { font-size: 15px; line-height: 1.75; color: #aaa; margin-bottom: 18px; }
+p strong { color: #e0e0e0; font-weight: 600; }
+.divider { border: none; border-top: 1px solid #1a1a1a; margin: 48px 0; }
+
+/* ── Two-column hypothesis ── */
+.two-col {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 28px 0;
+}
+.col-card {
+  background: #111; border: 1px solid #1e1e1e; border-radius: 6px; padding: 20px 22px;
+}
+.col-card h4 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 12px; }
+.col-card.unreal h4 { color: #6ab0f5; }
+.col-card.ai h4 { color: var(--orange); }
+.col-card ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.col-card li { font-size: 13px; color: #888; padding-left: 14px; position: relative; line-height: 1.5; }
+.col-card li::before { content: "+"; position: absolute; left: 0; color: #3a3a3a; }
+.col-card.unreal li.con::before { content: "−"; color: #5a3a3a; }
+.col-card.ai li.con::before { content: "−"; color: #5a3a3a; }
+.col-card li.con { color: #666; }
+
+.hypothesis {
+  background: #111; border: 1px solid var(--orange); border-radius: 6px;
+  padding: 22px 24px; margin: 28px 0;
+}
+.hypothesis p { margin: 0; font-size: 15px; color: #ccc; }
+.hypothesis p strong { color: #fff; }
+
+/* ── Pipeline steps ── */
+.pipeline { display: flex; align-items: center; gap: 0; flex-wrap: wrap; margin: 24px 0; }
+.pipe-step {
+  background: #111; border: 1px solid #222; border-radius: 6px;
+  padding: 10px 14px; font-size: 11px; font-weight: 600;
+  color: #ccc; text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap;
+}
+.pipe-step.ue { border-color: #6ab0f5; color: #6ab0f5; }
+.pipe-step.ai { border-color: var(--orange); color: var(--orange); }
+.pipe-arrow { color: #333; font-size: 18px; padding: 0 8px; flex-shrink: 0; }
+
+/* ── Tags ── */
+.tag-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0; }
+.tag { font-size: 10px; padding: 4px 10px; border-radius: 3px; border: 1px solid #2a2a2a; color: #555; text-transform: uppercase; letter-spacing: 0.08em; }
+.tag.flag { border-color: #5a2a1a; color: #c4622d; }
+.tag.win  { border-color: #1a3a2a; color: #4a9a6a; }
+
+/* ── Callout ── */
+.callout { border-left: 3px solid var(--orange); background: #111; padding: 16px 20px; border-radius: 0 6px 6px 0; margin: 24px 0; }
+.callout p { margin: 0; font-size: 14px; }
+
+/* ── Comments ── */
+#comments { margin-top: 64px; }
+#comments h2 { margin-top: 0; }
+.comment-form { display: flex; flex-direction: column; gap: 12px; margin-bottom: 40px; }
+.comment-form input,
+.comment-form textarea {
+  background: #111; border: 1px solid #222; color: #e0e0e0;
+  font-family: inherit; font-size: 14px; padding: 10px 14px;
+  border-radius: 4px; outline: none; resize: vertical; transition: border-color 0.15s;
+}
+.comment-form input:focus, .comment-form textarea:focus { border-color: var(--orange); }
+.comment-form textarea { min-height: 100px; }
+.comment-form button {
+  background: var(--orange); color: #fff; border: none;
+  font-family: inherit; font-size: 12px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  padding: 10px 24px; border-radius: 4px; cursor: pointer;
+  align-self: flex-start; transition: opacity 0.15s;
+}
+.comment-form button:hover { opacity: 0.85; }
+.comment-list { display: flex; flex-direction: column; gap: 16px; }
+.comment-item { background: #111; border: 1px solid #1a1a1a; border-radius: 6px; padding: 16px 20px; }
+.comment-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.comment-author { font-size: 12px; font-weight: 600; color: #ccc; }
+.comment-date   { font-size: 11px; color: #444; }
+.comment-text   { font-size: 14px; line-height: 1.6; color: #999; }
+.no-comments    { font-size: 13px; color: #444; font-style: italic; }
+
+@media (max-width: 640px) {
+  nav { padding: 10px 14px; }
+  .nav-brand img { height: 44px; }
+  .nav-brand span { display: none; }
+  .nav-link { padding: 5px 10px; font-size: 10px; }
+  main { padding: 80px 16px 60px; }
+  .two-col { grid-template-columns: 1fr; }
+  .pipeline { gap: 4px; }
+  .pipe-arrow { padding: 0 4px; font-size: 14px; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">
+    <img src="assets/fivefold-logo-transparent.png" alt="Fivefold">
+    <span>HighVis R&D</span>
+  </div>
+  <div class="nav-links">
+    <a href="index.html" class="nav-link">Comparisons</a>
+    <a href="images.html" class="nav-link">Images</a>
+    <a href="pipeline.html" class="nav-link">Pipeline</a>
+    <a href="writeup.html" class="nav-link active">Summary</a>
+  </div>
+</nav>
+
+<main>
+
+  <p class="eyebrow">Fivefold HighVis R&D</p>
+  <h1>Unreal + AI:<br>Keeping Control, Gaining Realism</h1>
+  <p class="dateline">9 April 2026 &mdash; Day One Summary</p>
+
+  <!-- ── The Hypothesis ── -->
+  <h2>The Starting Point</h2>
+
+  <p>
+    Unreal Engine gives a production team precise control over camera position, scene composition,
+    spatial layout, and timing. The limitation is that producing a photorealistic result from
+    Unreal requires significant time, specialist artists, and iterative refinement of materials
+    and lighting. AI image generation works the other way: it produces photographic-looking
+    output quickly and cheaply, but the composition is largely outside the operator's control.
+    Prompt adjustments shift the look rather than the framing.
+  </p>
+
+  <div class="two-col">
+    <div class="col-card unreal">
+      <h4>Unreal Engine</h4>
+      <ul>
+        <li>Camera and composition are exact and repeatable</li>
+        <li>Scene geometry and spatial relationships are controlled</li>
+        <li>Non-destructive — adjustments don't break previous work</li>
+        <li class="con">Photorealism requires specialist artists and long iteration</li>
+        <li class="con">Materials and lighting are slow to develop</li>
+        <li class="con">High cost to reach broadcast-quality look</li>
+      </ul>
+    </div>
+    <div class="col-card ai">
+      <h4>AI Generation</h4>
+      <ul>
+        <li>Photographic output in minutes from a prompt</li>
+        <li>Rich material and atmospheric detail without 3D work</li>
+        <li>Low cost per iteration</li>
+        <li class="con">Composition is not reliably controllable</li>
+        <li class="con">Framing and spatial layout drift between generations</li>
+        <li class="con">Hard to make precise structural changes</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="hypothesis">
+    <p>
+      <strong>Hypothesis:</strong> Separating the responsibilities between the two tools removes both limitations.
+      Unreal handles composition, camera motion, and spatial layout. AI handles materials, atmosphere, and realism.
+      The director retains control of what the frame says; AI handles what it looks like.
+      The aim is to build a pipeline where this handoff happens fast enough to be near-realtime.
+    </p>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── What We Tested ── -->
+  <h2>What We Tested</h2>
+
+  <p>
+    Two scenes were tested in a single day, each using a different type of Unreal output as
+    the composition source. The first was a spaceship interior rendered as an untextured grey pass.
+    The second was a Riyadh desert cityscape output as a depth map.
+    Both followed the same principle: Unreal locks the composition, AI applies the look.
+  </p>
+
+  <h3>Spaceship — Untextured Pass</h3>
+  <div class="pipeline">
+    <div class="pipe-step ue">Unreal<br>Unlit Render</div>
+    <span class="pipe-arrow">&rarr;</span>
+    <div class="pipe-step ai">Nano Banana<br>Image Gen</div>
+    <span class="pipe-arrow">&rarr;</span>
+    <div class="pipe-step ai">Magnific<br>Upscale</div>
+    <span class="pipe-arrow">&rarr;</span>
+    <div class="pipe-step ai">Video Gen<br>Kling / Luma / Wan</div>
+  </div>
+  <p>
+    The plain grey render was passed directly into Nano Banana Pro with a prompt describing
+    the target look and materials. The spatial structure from Unreal stayed intact while the
+    AI applied surface detail, lighting, and atmosphere. Three video generation models were
+    then run against the same source animation to compare motion quality.
+  </p>
+
+  <h3>Cityscape — Depth Map Pass</h3>
+  <div class="pipeline">
+    <div class="pipe-step ue">Unreal<br>Depth Map</div>
+    <span class="pipe-arrow">&rarr;</span>
+    <div class="pipe-step ai">Flux 2 Pro<br>Image Gen</div>
+    <span class="pipe-arrow">&rarr;</span>
+    <div class="pipe-step ai">NB Edit<br>Tower fix</div>
+    <span class="pipe-arrow">&rarr;</span>
+    <div class="pipe-step ai">Magnific<br>Upscale</div>
+    <span class="pipe-arrow">&rarr;</span>
+    <div class="pipe-step ai">Kling o1<br>Video Gen</div>
+  </div>
+  <p>
+    A depth map was chosen over a flat colour render because depth gradients encode surface
+    orientation and scene geometry more explicitly, giving the AI more spatial information to
+    work from. Flux 2 Pro produced the strongest base image for the Riyadh night scene.
+    A placement issue with one tower required a two-step edit before the image went to
+    Magnific and then Kling for video generation.
+  </p>
+
+  <hr class="divider">
+
+  <!-- ── Challenges ── -->
+  <h2>Challenges &amp; Flags</h2>
+
+  <h3>Composition Drift in Image Gen</h3>
+  <div class="tag-row"><span class="tag flag">Flag</span><span class="tag">Nano Banana / Weavy</span></div>
+  <p>
+    When a depth map and a photographic style reference were combined in the Weavy interface,
+    Nano Banana began reinterpreting the composition from the depth map rather than preserving it.
+    The platform appeared to treat the style reference as a layout input rather than appearance-only.
+    This is most likely a Weavy-specific behaviour. Direct NB prompting without Weavy as an intermediary
+    should be tested to confirm whether the separation can be maintained cleanly.
+  </p>
+
+  <h3>Videogame Look on First Pass</h3>
+  <div class="tag-row"><span class="tag flag">Flag</span><span class="tag">Prompt Engineering</span></div>
+  <p>
+    First-pass cityscape outputs looked rendered rather than photographic. A depth map carries
+    spatial information but no material cues, and the model defaulted to a CG appearance.
+    Adding a photographic style reference image alongside the depth map and including explicit
+    hard constraints in the prompt — <em>not CGI, not illustrated, not a video game</em> —
+    resolved this for Flux 2 Pro. The constraint language was required; the style reference alone
+    was not enough.
+  </p>
+
+  <h3>Structural Edits Need Two Steps</h3>
+  <div class="tag-row"><span class="tag flag">Flag</span><span class="tag">Image Editing</span></div>
+  <p>
+    Attempting to remove and reposition a tower in a single prompt failed on both Flux and NB.
+    Neither model produced a clean result when asked to do both operations at once.
+    Splitting the instruction into two passes — remove first, reintroduce second — worked on
+    the first attempt. Single-prompt structural edits are unreliable.
+    <strong>Two-step editing should be the default for any structural change.</strong>
+  </p>
+
+  <h3>Video Generation Cap: 10 Seconds</h3>
+  <div class="tag-row"><span class="tag flag">Flag</span><span class="tag">Kling o1</span><span class="tag">Luma</span><span class="tag">Wan</span></div>
+  <p>
+    All three video generation tools capped output at approximately <strong>10 seconds</strong>,
+    regardless of input clip length. Camera moves will need to be designed within that constraint,
+    or the pipeline will need an additional stitching step to cover longer durations.
+  </p>
+
+  <hr class="divider">
+
+  <!-- ── Results & Learnings ── -->
+  <h2>Results &amp; Learnings</h2>
+
+  <div class="callout">
+    <p>
+      The pipeline worked. Unreal composition carried through intact in both scenes after AI processing.
+      The spatial relationships, framing, and camera motion from the Unreal renders were preserved
+      in the final video outputs. What this day established is that the handoff between the two tools
+      is viable — the composition does not collapse when you pass it to AI.
+      <strong>What it did not establish is a reliable near-realtime pace.</strong>
+    </p>
+  </div>
+
+  <h3>Depth Map vs Untextured Render</h3>
+  <p>
+    The depth map gave the AI more geometry information than the plain grey render.
+    Surface orientation and spatial depth are implicit in depth gradients in a way that a flat
+    grey pass does not provide. The cityscape result was stronger on first pass than the spaceship,
+    though the spaceship pipeline had fewer steps and required no structural editing.
+    Higher-fidelity Unreal outputs — normal maps, lit renders, beauty passes — are worth testing
+    to see how much the source quality affects the final image.
+  </p>
+
+  <h3>Model Comparison — Video Gen</h3>
+  <p>
+    Kling o1, Luma Modify, and Wan 2.7 were all tested on the spaceship scene.
+    All three preserved the Unreal camera motion in the output. Temporal stability and image
+    quality varied between models. The Comparisons page shows all three side by side against
+    the original Unreal render — the differences are visible and worth evaluating in context
+    rather than in isolation.
+  </p>
+
+  <h3>Near-Realtime: Where We Are</h3>
+  <p>
+    The full pipeline — Unreal render to final video — ran within a single working session.
+    Individual stages each took minutes. The bottleneck was not the tools but the iteration:
+    prompt refinement, multi-step structural edits, and switching between platforms added time
+    that a validated workflow would eliminate. Building a prompt library — verified prompts
+    per scene type, per tool — is the most direct path to reducing that overhead.
+  </p>
+
+  <h3>Recommendations for Next Session</h3>
+  <p>
+    <strong>1.</strong> Test Nano Banana directly outside Weavy with depth map and style reference combined. Confirm whether the composition drift is a Weavy interface issue or an NB model behaviour.<br><br>
+    <strong>2.</strong> Design all camera moves for 10s maximum until a clip-stitching workflow has been validated and tested for seam artefacts.<br><br>
+    <strong>3.</strong> Build a validated prompt library — one confirmed prompt per scene type (interior, exterior, day, night) significantly reduces first-pass iteration time.<br><br>
+    <strong>4.</strong> Test higher-fidelity Unreal source outputs: lit render, normal map, and beauty pass. The quality of the source affects how much work the AI has to do to reach a photographic result.
+  </p>
+
+  <hr class="divider">
+
+  <!-- ── Comments ── -->
+  <section id="comments">
+    <h2>Notes &amp; Feedback</h2>
+
+    <form class="comment-form" id="comment-form">
+      <input type="text" id="c-name" placeholder="Your name" maxlength="60" required>
+      <textarea id="c-text" placeholder="Leave a note or feedback..." maxlength="1000" required></textarea>
+      <button type="submit">Post note</button>
+    </form>
+
+    <div class="comment-list" id="comment-list">
+      <p class="no-comments">No notes yet — be the first.</p>
+    </div>
+  </section>
+
+</main>
+
+<script>
+const STORAGE_KEY = "highvis_comments_v1";
+function loadComments() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; }
+}
+function saveComments(c) { localStorage.setItem(STORAGE_KEY, JSON.stringify(c)); }
+function formatDate(ts) {
+  return new Date(ts).toLocaleString("en-GB", {
+    day: "2-digit", month: "short", year: "numeric",
+    hour: "2-digit", minute: "2-digit"
+  });
+}
+function escHtml(s) {
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function renderComments() {
+  const list = document.getElementById("comment-list");
+  const comments = loadComments();
+  if (!comments.length) {
+    list.innerHTML = '<p class="no-comments">No notes yet — be the first.</p>';
+    return;
+  }
+  list.innerHTML = comments.slice().reverse().map(c => `
+    <div class="comment-item">
+      <div class="comment-meta">
+        <span class="comment-author">${escHtml(c.name)}</span>
+        <span class="comment-date">${formatDate(c.ts)}</span>
+      </div>
+      <p class="comment-text">${escHtml(c.text).replace(/\n/g,"<br>")}</p>
+    </div>
+  `).join("");
+}
+document.getElementById("comment-form").addEventListener("submit", function(e) {
+  e.preventDefault();
+  const name = document.getElementById("c-name").value.trim();
+  const text = document.getElementById("c-text").value.trim();
+  if (!name || !text) return;
+  const comments = loadComments();
+  comments.push({ name, text, ts: Date.now() });
+  saveComments(comments);
+  this.reset();
+  renderComments();
+});
+renderComments();
+</script>
+</body>
+</html>
