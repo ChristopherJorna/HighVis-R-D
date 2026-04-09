@@ -235,7 +235,9 @@ const SCENES = [
       { label: "Depth Map", src: "scenes/CITYSCAPE/depth.mp4" },
     ],
     right: [
-      { label: "Kling o1", src: "scenes/CITYSCAPE/tests/CITYSCAPE_DP_FL_KL_P003_v01/video_output.mp4" },
+      { label: "Kling o1",    src: "scenes/CITYSCAPE/tests/CITYSCAPE_DP_FL_KL_P003_v01/video_output.mp4" },
+      { label: "Luma Modify", src: "scenes/CITYSCAPE/tests/CITYSCAPE_DP_FL_LM_P003_v01/video_output.mp4" },
+      { label: "Wan 2.7",     src: "scenes/CITYSCAPE/tests/CITYSCAPE_DP_FL_WN_P003_v01/video_output.mp4" },
     ],
     prompts: [
       { label: "P003 — Image Gen", file: "prompts/P003.md" },
@@ -247,6 +249,12 @@ const SCENES = [
 
 const container = document.getElementById("sections");
 SCENES.forEach((cfg, idx) => buildScene(cfg, idx, container));
+
+// iOS Safari autoplay unlock — first touch plays all videos
+document.addEventListener("touchstart", function unlock() {
+  document.querySelectorAll("video").forEach(v => v.play().catch(() => {}));
+  document.removeEventListener("touchstart", unlock);
+}, { once: true });
 
 function buildScene(cfg, idx, container) {
   const leftOpts  = cfg.left.map((o, i)  => `<option value="${i}">${o.label}</option>`).join("");
@@ -433,6 +441,9 @@ function initSlider(idx, cfg) {
     requestAnimationFrame(tick);
   }
   tick();
+
+  // Kick off play immediately (belt + braces for mobile)
+  [leftVid, rightVid].forEach(v => v.play().catch(() => {}));
 
   function getPct(e) {
     const r = wrap.getBoundingClientRect();

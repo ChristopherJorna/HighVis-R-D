@@ -72,6 +72,44 @@
     }
   },
   {
+    "test_id": "CITYSCAPE_DP_FL_LM_P003_v01",
+    "scene": "CITYSCAPE",
+    "pass": "DP",
+    "img": "FL",
+    "vid": "LM",
+    "prompt": "P003",
+    "version": "v01",
+    "date": "2026-04-09",
+    "score": "",
+    "notes": "Depth map as source. Flux 2 Pro base imggen + NB edit + Magnific upscale. Luma Modify video (P006).",
+    "files": {
+      "frame":    "scenes/CITYSCAPE/tests/CITYSCAPE_DP_FL_LM_P003_v01/source_frame.png",
+      "imggen":   "scenes/CITYSCAPE/tests/CITYSCAPE_DP_FL_LM_P003_v01/img_gen.png",
+      "magnific": "scenes/CITYSCAPE/tests/CITYSCAPE_DP_FL_LM_P003_v01/img_magnific.png",
+      "video":    "scenes/CITYSCAPE/tests/CITYSCAPE_DP_FL_LM_P003_v01/video_output.mp4",
+      "depth":    "scenes/CITYSCAPE/depth.mp4"
+    }
+  },
+  {
+    "test_id": "CITYSCAPE_DP_FL_WN_P003_v01",
+    "scene": "CITYSCAPE",
+    "pass": "DP",
+    "img": "FL",
+    "vid": "WN",
+    "prompt": "P003",
+    "version": "v01",
+    "date": "2026-04-09",
+    "score": "",
+    "notes": "Depth map as source. Flux 2 Pro base imggen + NB edit + Magnific upscale. Wan 2.7 video (P006).",
+    "files": {
+      "frame":    "scenes/CITYSCAPE/tests/CITYSCAPE_DP_FL_WN_P003_v01/source_frame.png",
+      "imggen":   "scenes/CITYSCAPE/tests/CITYSCAPE_DP_FL_WN_P003_v01/img_gen.png",
+      "magnific": "scenes/CITYSCAPE/tests/CITYSCAPE_DP_FL_WN_P003_v01/img_magnific.png",
+      "video":    "scenes/CITYSCAPE/tests/CITYSCAPE_DP_FL_WN_P003_v01/video_output.mp4",
+      "depth":    "scenes/CITYSCAPE/depth.mp4"
+    }
+  },
+  {
     "test_id": "CITYSCAPE_DP_FL_KL_P003_v01",
     "scene": "CITYSCAPE",
     "pass": "DP",
