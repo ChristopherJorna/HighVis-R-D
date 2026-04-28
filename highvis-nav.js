@@ -5,9 +5,11 @@
     { slug: 'hub',     href: 'highvis.html',         label: 'Hub' },
     { slug: 'summary', href: 'highvis-summary.html', label: 'Exec Summary' },
     { slug: 'log',     href: 'research-log.html',    label: 'Research Log' },
-    { slug: 'blog',    href: 'highvis-blog.html',    label: 'VFX Blog' },
-    { slug: 'social',  href: 'highvis-social.html',  label: 'Social Posts' },
-    { slug: 'scripts', href: 'highvis-scripts.html', label: 'Video Scripts' },
+    // Hidden pending QC:
+    // { slug: 'blog',    href: 'highvis-blog.html',    label: 'VFX Blog' },
+    // { slug: 'social',  href: 'highvis-social.html',  label: 'Social Posts' },
+    // { slug: 'scripts', href: 'highvis-scripts.html', label: 'Video Scripts' },
+    { slug: 'board',   href: 'board.html',           label: 'Test Board' },
   ];
 
   const active = document.body.getAttribute('data-page') || '';
