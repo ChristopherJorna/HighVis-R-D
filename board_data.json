@@ -127,5 +127,26 @@
       "video":    "scenes/CITYSCAPE/tests/CITYSCAPE_DP_FL_KL_P003_v01/video_output.mp4",
       "depth":    "scenes/CITYSCAPE/depth.mp4"
     }
+  },
+  {
+    "test_id": "SPACESHIP_UT_NB_KLC_P002_v01",
+    "scene": "SPACESHIP",
+    "pass": "UT",
+    "img": "NB",
+    "vid": "KLC",
+    "prompt": "P002",
+    "version": "v01",
+    "date": "2026-04-23",
+    "score": "",
+    "notes": "Chunked Kling o1 V2V via ComfyUI — first seam-clean run. 2x 3s chunks with 24-frame crossfade = 6s final. Seam fixes: chunk1-tail -> chunk2 reference_images[0] (SetNode/GetNode teleport), restyle as reference_images[1], kjnodes ColorMatch (mkl) chunk2 -> chunk1, 'HARD FIRST FRAME' prompt anchor on chunk 2, seed=42 both chunks. Tests open question #1 on Classic fork (seam visibility). KLC = Kling Chunked. Raw MP4 not yet archived to scenes/ tree.",
+    "files": {
+      "frame":    "",
+      "imggen":   "",
+      "magnific": "",
+      "video":    "",
+      "workflow": "tools/highvis-classic/workflow-kling-chunked.json",
+      "proof_chunk2_raw": "content/output/highvis/classic/highvis-classic-renderer-chunk2-raw-preview-2026-04-23.png",
+      "proof_final": "content/output/highvis/classic/highvis-classic-renderer-final-kling-chunked-2026-04-23.png"
+    }
   }
 ]

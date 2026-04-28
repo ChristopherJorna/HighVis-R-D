@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HighVis — Living Research Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="highvis-shared.css">
+</head>
+<body data-page="log">
+
+<div class="layout">
+  <main>
+    <section class="hero">
+      <div class="eyebrow">Research Log · 2026-04-28</div>
+      <h1 class="title">HighVis — Living Research Log</h1>
+      <p class="subtitle">A running record of the three-fork programme: Classic, Hybrid, and Local. Architecture decisions, model choices, cross-fork comparisons, and every finding traced back to its source file.</p>
+      <div class="meta-grid">
+        <div class="meta-item"><div class="meta-label">Audience</div><div class="meta-value">CoSTAR · Innovate UK · Media Cymru</div></div>
+        <div class="meta-item"><div class="meta-label">Owners</div><div class="meta-value">Christopher Jorna · Fivefold</div></div>
+        <div class="meta-item"><div class="meta-label">Forks</div><div class="meta-value">Classic · Hybrid · Local</div></div>
+        <div class="meta-item"><div class="meta-label">Status</div><div class="meta-value">In active development</div></div>
+      </div>
+    </section>
+
+    <article id="content">
+      <div class="loading">Rendering research log…</div>
+    </article>
+
+    <div class="colophon">
+      <p><strong>Living document.</strong> Every claim traces back to one of the following canonical sources:</p>
+      <ul>
+        <li>content/academic/highvis/highvis-status.json</li>
+        <li>content/academic/highvis/forks/local/findings.md</li>
+        <li>content/academic/highvis/forks/classic/findings.md</li>
+        <li>content/academic/highvis/forks/hybrid/findings.md</li>
+        <li>content/academic/highvis/comparisons/</li>
+        <li>content/academic/highvis/2026-04-23-programme-summary.md</li>
+        <li>HighVisRnD/board_data.json</li>
+        <li>content/output/highvis/local/&lt;shot&gt;/&lt;test_id&gt;/metadata.json</li>
+        <li>tools/highvis-classic/README.md · tools/highvis-hybrid/README.md · tools/highvis-local/README.md</li>
+        <li>tools/highvis-local/configs/</li>
+        <li>state/handover-runpod-highvis-local.md</li>
+      </ul>
+    </div>
+  </main>
+
+  <aside class="toc" id="toc">
+    <div class="toc-title">On this page</div>
+    <ul id="toc-list"></ul>
+  </aside>
+</div>
+
+<script src="highvis-nav.js"></script>
+<script src="highvis-review.js" defer></script>
+
+<script type="text/markdown" id="md-source">
+# HighVis — Living Research Log
+
+**Programme:** HighVis R&D
+**Owners:** Christopher Jorna · Fivefold
+**Forks:** Classic (active) · Hybrid (dormant, infra wired) · Local (active, build phase)
+**Last updated:** 2026-04-28
+
+---
+
+## 1. Programme Overview
+
+### 2026-04-23 — What HighVis is and why it exists
+
+HighVis is a render pipeline that takes a low-fidelity Unreal Engine output and restyles it with AI into photoreal video, while keeping the camera move, framing, and spatial layout from the original render intact.
+
+The split is deliberate. Unreal Engine (a real-time 3D environment used across film, TV, and games) handles what it is good at: precise, repeatable camera, composition, and scene layout. AI handles what it is good at: materials, atmosphere, photoreal surfaces, light. Neither tool is asked to do the other's job.
+
+This matters because the two alternatives are both expensive in different ways. Fully photoreal Unreal output requires specialist artists, weeks of material and lighting work, and real money. Pure AI video generation is photoreal on first pass, in minutes, for very little money. But you cannot reliably control the framing. Change the prompt and the look changes, but so does the layout. HighVis removes both limits. The director keeps control of what the frame says. The AI handles what it looks like.
+
+The workflow end-to-end:
+
+1. Render the scene in Unreal at whatever fidelity is fast. Untextured grey, depth pass, wireframe — all are valid starting points.
+2. Extract the first frame.
+3. Restyle that frame with an AI image model, supplying a prompt and any style references.
+4. Upscale the restyled frame.
+5. Feed the restyled-and-upscaled frame plus the original Unreal video into a video model that rerenders the motion in the new style, frame by frame. This is called video-to-video (V2V).
+6. If the shot is longer than the video model's per-call cap (typically around 10 seconds), generate in chunks and stitch them together using the last frame of chunk one as the opening reference of chunk two, so the seam is invisible.
+
+What comes out is a video that moves like the Unreal render and looks like the AI image.
+
+The programme runs across three parallel implementations called forks, each answering a different version of the same question: where does the compute happen, and who pays for it?
+
+---
+
+## 2. The Durable Architecture Bet
+
+### 2026-04-23 — Why the pipeline design matters more than any specific model
+
+The central architectural decision in HighVis is to treat the model at each stage as a config value rather than a baked-in node, so that the pipeline shape holds regardless of which models sit inside it. Every fork has the same structure: source video in, first-frame restyle, upscale, video restyle, optional chunking, final output. What changes between forks is which model occupies each slot.
+
+The practical consequence of this for the Local fork is that a new state-of-the-art video model landing next month should require a config change, not a rewrite. The image model slot should accept one model today and a better one next month with a one-line change. The same applies to the video model and the upscaler. When a new open-source model ships (and the cadence is currently measured in months), the pipeline inherits it: test, compare against prior outputs using the shared scoring rubric, promote or not.
+
+The specific models in use at any point are choices made under uncertainty, while the core workflow — Unreal for composition, AI for photoreal, chunked stitching for duration — holds because the reasoning behind it holds. The separation of responsibilities between Unreal and AI is what makes the architecture durable, not any particular model combination.
+
+---
+
+## 3. The Three Forks
+
+### 2026-04-23 — Rationale and current state per fork
+
+#### 3.1 Classic — proprietary APIs via ComfyUI
+
+**Status:** active
+**Last test run:** 2026-04-23
+
+Classic is the most mature fork. It uses the best commercial models currently available, wired together in ComfyUI (an open-source AI workflow tool) with chunked stitching for shots longer than 10 seconds.
+
+Model stack: Nano Banana Pro (image restyle), Flux 2 Pro (image generation), Magnific (upscale), Kling o1 (video), Seedance 2.0 (video), Luma Modify (video), Wan 2.7 (video).
+
+Strength: quality benchmark. If a result cannot be matched here, it cannot be matched anywhere on this programme. Iteration is fast because the heavy inference work runs on provider infrastructure.
+
+Cost: approximately $1.01 per 6-second shot for Kling o1 Pro V2V alone (verified pricing $0.168/sec), approximately $1.22 per 6-second shot when running Kling and Seedance 2.0 ($0.035/sec) in parallel for A/B comparison. Source: `highvis-status.json` and vendor pricing as of 2026-04-28.
+
+Dependency: every API in the chain. If Nano Banana's pricing changes or Kling o1 is rate-limited, the pipeline is exposed at every stage.
+
+Classic's core research question is: what is the quality ceiling for this approach, using the best proprietary tools available today?
+
+#### 3.2 Hybrid — ComfyUI routed through Robin's AIVFX infrastructure
+
+**Status:** dormant — ComfyUI workflow and custom node pack exist; blocked on API auth from Robin
+**Last active:** not yet (no test runs completed)
+
+Hybrid routes model calls through Robin's external API (`shwsh.co.uk`) rather than calling providers directly. Robin's infrastructure already solves the fiddly parts that Classic had to work around: video frame-rate handling, resolution normalisation, provider-specific API quirks, duration caps, moderation. Three parallel video branches (Kling o1, Seedance 2.0, Wan 2.7) match Classic's A/B/C structure but without rebuilding provider integrations.
+
+Cost: to be measured — pending first run and cost model confirmation from Robin. Source: `forks/hybrid/findings.md`.
+
+Dependency: Robin's infrastructure uptime and his model availability.
+
+Hybrid's core research question is: what does routing the same models through an abstraction layer buy in cost, latency, and resilience?
+
+**Current blockers:** base URL unconfirmed; auth config missing; long-lived credential path TBD; API request schemas inferred but not verified. All blockers documented in `tools/highvis-hybrid/questions-for-robin.md`. Source: `forks/hybrid/findings.md`.
+
+#### 3.3 Local — fully open-source, fully local
+
+**Status:** active — RunPod infrastructure wired 2026-04-28; ComfyUI workflow design locked; build phase
+**Last active:** 2026-04-28
+
+Local builds the same pipeline using only open-source models running on cloud GPU (RunPod RTX 5090 spot instance, ~$0.50/hr) accessed via SFTP mount. Zero per-shot cost once the hardware is running. Full reproducibility: anyone with a RunPod account can reconstruct the entire compute environment by attaching the same network volume and running the bootstrap script.
+
+Cost: $0.00 per shot (hardware only, amortised). Infrastructure: RunPod RTX 5090 spot instance accessed via `ssh runpod` for GPU jobs; 65GB network volume (`racial_rose_raven`, EUR-NO-1) mounted as `Z:\` on Windows via rclone SFTP + WinFsp. Source: `highvis-status.json`, `forks/local/findings.md`.
+
+Dependency: the current state of open-source video models. Camera preservation is harder with open-source models than with Kling o1 today. That gap is the real question this fork exists to measure.
+
+Local's core research question is: how much quality do you sacrifice to eliminate per-shot cost and all API dependency?
+
+---
+
+## 4. What Has Been Measured — Classic Fork Findings (F1–F6)
+
+### 2026-04-09 — Spaceship and Cityscape test day
+
+Eight tests run across two scenes (Spaceship untextured grey pass, Cityscape depth map) and three video models (Kling o1, Luma Modify, Wan 2.7). Source: `HighVisRnD/board_data.json`, `forks/classic/findings.md`.
+
+**F1 — Separation of responsibilities holds**
+
+When Unreal handles composition, camera motion, and spatial layout, and AI handles materials, atmosphere, and realism, the composition survives the handoff intact. Framing, camera motion, and spatial relationships from the Unreal source are preserved in the final AI video output across both scenes and all three video models tested.
+
+The director retains control of what the frame says. AI handles what it looks like. The handoff is viable; near-realtime is not yet proven.
+
+Tests: `SPACESHIP_UT_NB_KL_P001_v01`, `SPACESHIP_UT_NB_LM_P001_v01`, `SPACESHIP_UT_NB_WN_P001_v01`, `CITYSCAPE_DP_FL_KL_P003_v01`, `CITYSCAPE_DP_FL_LM_P003_v01`, `CITYSCAPE_DP_FL_WN_P003_v01`.
+
+**F2 — Source-image information density drives determinism (revised 2026-04-28)**
+
+When the Unreal pass is fed directly as the source image (not as a ControlNet input), the amount of usable visual information in the source determines how deterministic the restyle becomes. The grey matte carried explicit lighting direction, surface tone, and rough material cues. The depth map encoded only relative distance, leaving textures and lighting for the model to invent. On these tests, the grey-matte (Spaceship) source produced a tighter first-pass image than the depth-map (Cityscape) source. Earlier framing of this finding ("depth beats grey") conflated geometry information with imaging information; the image model needs imaging information, and the grey matte had more of that.
+
+Higher-fidelity Unreal source passes (normal maps, lit renders, beauty passes) are worth testing to quantify how much source quality reduces downstream iteration.
+
+Tests: `SPACESHIP_UT_NB_*` (grey pass) vs `CITYSCAPE_DP_FL_KL_P003_v01` (depth map).
+
+**F3 — Per-clip caps land in the 5-15 second range across tested models**
+
+All three video tools tested cap single-clip output, but the exact cap varies by model. Verified per published documentation (2026-04-28): Kling o1 V2V approximately 5-10s per call (varies by tier); Luma Modify 10s max input; Wan 2.7 2-15s for T2V/I2V and 2-10s for R2V; Seedance 2.0 10s per call (240 frames at 24fps). Any camera move longer than the relevant per-call cap requires a chunked stitching step.
+
+Tests: Kling o1, Luma Modify, Wan 2.7 all observed. Source: `CITYSCAPE_DP_FL_KL_P003_v01` notes ("Max video length discovered: 10s").
+
+**F4 — Structural image edits are unreliable in a single prompt**
+
+Attempting to remove and reposition a tower in the Cityscape scene in a single prompt failed on both Flux 2 Pro and Nano Banana. Splitting the instruction into two passes (remove first, reintroduce second) succeeded on the first attempt.
+
+Two-step editing should be the default for any structural change in Classic. Source: `forks/classic/findings.md`, `CITYSCAPE_DP_FL_KL_P003_v01`.
+
+**F5 — Videogame look on first pass without explicit prompt constraints**
+
+First-pass Cityscape outputs looked rendered rather than photographic. A depth map carries spatial information but no material cues; the model defaulted to a CG appearance. Adding a photographic style reference image alongside the depth map, plus explicit hard constraints in the prompt ("not CGI, not illustrated, not a video game"), resolved this for Flux 2 Pro. Constraint language was required; style reference alone was insufficient.
+
+Prompt templates per scene type must include negative style constraints. They are not optional.
+
+Tests: `CITYSCAPE_DP_FL_*` first passes.
+
+**F6 — Weavy interface may re-interpret depth maps as composition inputs**
+
+Flagged as likely Weavy-specific, not yet confirmed. When a depth map and a photographic style reference were combined in the Weavy interface, Nano Banana began re-interpreting the composition from the depth map rather than preserving it. The platform appeared to treat the style reference as a layout input rather than appearance-only.
+
+Do not rely on Weavy for composition-preserving style transfer until this is confirmed to be a Weavy issue and not a Nano Banana model behaviour. Test Nano Banana directly outside Weavy with the same inputs.
+
+---
+
+## 5. The Chunked Stitching Solution
+
+### 2026-04-23 — Classic fork: first seam-clean chunked run
+
+F3 established the 10-second clip cap. The response was to generate in consecutive chunks and stitch them, using a crossfade and a set of seam-fix measures to make the join invisible to an audience.
+
+The first visibly seamless chunked run was completed 2026-04-23 on the Spaceship untextured source: `SPACESHIP_UT_NB_KLC_P002_v01`. Two 3-second Kling o1 chunks crossfaded to produce a 6-second final output. Proof images: `content/output/highvis/classic/highvis-classic-renderer-chunk2-raw-preview-2026-04-23.png` and `content/output/highvis/classic/highvis-classic-renderer-final-kling-chunked-2026-04-23.png`. Workflow: `tools/highvis-classic/workflow-kling-chunked.json` (baselines at commits `ad15232`, `acc48fb`, `55ee75d`).
+
+**Flip-book stitching: how the seam was made invisible.** Think of a flip book where every page is one frame. Kling's V2V mode caps a single call at a few seconds, so you can't draw all the pages at once. Generate two batches; start batch two a few pages before batch one ends; blend the overlapping pages together; hand batch two the last frame of batch one as a reference. Plus a colour-match pass so the palette doesn't drift between batches. Concrete settings on this run, verified against `tools/highvis-classic/workflow-kling-chunked.json`:
+
+1. Chunk 1's last frame fed as `reference_images[0]` on chunk 2, wired via rgthree `SetNode`/`GetNode` teleport pair to keep the graph readable.
+2. The Gemini restyle fed as `reference_images[1]` on chunk 2, so style continuity is preserved alongside pixel continuity.
+3. `kjnodes ColorMatch` (method: `mkl`) re-grades chunk 2 to match chunk 1 before the crossfade, hiding exposure or tint drift.
+4. Chunk 2 prompt prefixed with "HARD FIRST FRAME / opening pixel parity" language. Since Kling V2V has no true start-frame parameter, the prompt plus reference pair is the strongest available anchor.
+5. Crossfade widened from 16 to 24 frames (1 second at 24fps). The 16-frame crossfade left a detectable pop on this test; 24 was smooth.
+
+Seed 42 fixed on both Kling calls. This does not make Kling deterministic (it is a proprietary API model) but removes intentional variance from the test.
+
+**Status:** single scene, single run. Not yet research-grade for seam-invisibility. Needs to hold on a second scene (Cityscape DP is next) before the claim can be promoted to an F-level finding.
+
+The Seedance chunked variant (`workflow-seedance-chunked.json`) mirrors the same structure and awaits a first run.
+
+---
+
+## 6. Local Fork Architecture — Design Before Code
+
+### 2026-04-28 — Four commitments locked before the build starts
+
+The Local fork is being designed before any code is written. Four architectural commitments are locked:
+
+**1. Model-agnostic abstraction.** Image model and video model are swappable via YAML config, not by rewriting the pipeline. A new SOTA model is a one-line change. This is the single biggest structural difference from Classic, where model choice is baked into a specific ComfyUI workflow JSON.
+
+**2. Determinism where the model allows it.** Every stage that supports a seed locks it at 42. Every stage that does not expose a seed has its output cached to disk, so re-rolls only hit the failed stage.
+
+**3. Cached intermediates.** Stages are numbered and saved: `01_unlit.mp4`, `02_first_frame.png`, `03_restyled.png`, `04_upscaled.png`, `05_final/####.exr`. If the restyled frame is good but the video is bad, re-run video only. Iteration cost is local-compute-bound, not total-pipeline-bound.
+
+**4. Near-realtime as a design assumption.** Streaming-friendly data structures, stages that can be re-entered, no "submit job, wait, view result" contract baked in. The architecture should not require restructuring when models become fast enough for realtime operation.
+
+### 2026-04-28 — F-LC-001: SFTP-mount-as-local-drive as a development pattern
+
+**Finding:** The Local fork uses a RunPod network volume (65GB, EUR-NO-1, volume ID: `fsqgc4q44f`) mounted as `Z:\` on Windows via rclone SFTP and WinFsp. Claude Code runs locally; GPU jobs are dispatched over SSH. The volume persists between pod sessions: models, ComfyUI install, and all intermediate outputs survive pod destruction.
+
+**What this buys:** Classic runs on a local Windows GPU and calls proprietary cloud APIs. Compute and model storage are split across two machines. Hybrid delegates to Robin's infrastructure, where CJ has no visibility into the file system. The Local fork's SFTP-mount pattern collapses both concerns: Claude Code has direct read/write access to `/workspace` on the pod as if it were a local folder. Deterministic intermediates are inspectable without a separate download step. The model config lives on the same volume as the models. The entire compute environment is reproduced by running `pod-bootstrap.sh` on any pod with the same volume attached.
+
+**Limitation:** rclone SFTP adds latency on operations that scan many small files. If ComfyUI model discovery on startup becomes a bottleneck, the documented fallback is running Claude Code inside the pod via tmux (Option A). This has not been tested. Evaluate once ComfyUI is installed.
+
+**Files:** `tools/highvis-local/runpod/`, `state/handover-runpod-highvis-local.md`. Source: `forks/local/findings.md`.
+
+### 2026-04-28 — Canonical storage layout and metadata contract
+
+Every Local test produces a folder with stage-numbered cached intermediates and a machine-readable `metadata.json`. This is the contract every downstream document reads. No inventing, all traceable.
+
+```
+content/output/highvis/local/<shot>/<test_id>/
+├── 01_unlit.mp4              (symlink to Unreal source render)
+├── 02_first_frame.png        (extracted from 01 for restyle)
+├── 03_restyled.png           (image model output, ControlNet-conditioned)
+├── 04_upscaled.png           (upscaler output)
+├── 05_final/####.exr         (LTX-HDR linear HDR EXR sequence)
+├── 05_preview.mp4            (SDR preview encode for quick review)
+├── prompt.txt                (literal prompt sent to the image model)
+└── metadata.json             (machine-readable source of truth for this test)
+```
+
+Test ID convention: `<fork>_<scene>_<pass>_<image>_<upscaler>_<video>_P<prompt>_v<version>`. First baseline: `LC_SPACESHIP_UT_ZIMG_SUPIR_LTXHDR_P001_v01`.
+
+The `metadata.json` schema records model IDs, weights, seeds, ControlNet choices, prompt, output paths, frame count, resolution, FPS, per-stage scores (null until measured), per-stage timing (null until measured), cost ($0.00 for Local), GPU, and date. Full schema in `forks/local/findings.md`.
+
+---
+
+## 7. Model Landscape — Why These Choices, Given the Constraints
+
+### 2026-04-28 — Reasoning per model, per fork
+
+The constraints for Classic: quality ceiling (proprietary models allowed), cost measured per shot, proprietary APIs accepted.
+
+The constraints for Local: zero per-shot cost, open-weights only, EXR/HDR output preferred for VFX pipeline compatibility, runs on a single GPU.
+
+#### 7.1 Classic fork models
+
+**Nano Banana Pro (image restyle):** Google Gemini-family image model (Gemini 2.5 Flash backbone; Pro variant runs on Gemini 3.0 Pro). Used for first-frame restyle in Classic. Wired via ComfyUI API node. Source: `highvis-status.json` session notes.
+
+**Flux 2 Pro (image generation):** Used for initial image generation on Cityscape, where a stronger base generation was needed before the Nano Banana edit pass. Source: `board_data.json` (`CITYSCAPE_DP_FL_*` tests).
+
+**Magnific (upscale):** Freepik's API-based upscaler, up to 16x. Used in Classic for the upscale stage. Source: `highvis-status.json` session notes.
+
+**Kling o1 (video):** Kuaishou's unified multimodal video model. 3–10 second clips. The V2V (video-to-video) mode is the primary workhorse for Classic. Source: `highvis-status.json` session notes.
+
+**Seedance 2.0 (video):** ByteDance. Accepts up to 3 reference videos and 9 reference images per call (per ComfyUI docs; not yet tested in programme). Used in A/B comparison against Kling. Source: `forks/classic/findings.md`.
+
+**Luma Modify (video):** Tested in the 2026-04-09 run. Included in the model list in `highvis-status.json`.
+
+**Wan 2.7 (video):** Tested in the 2026-04-09 run. Available as both an API call (Classic) and open-source local (Local). Source: `highvis-status.json`, `board_data.json`.
+
+#### 7.2 Local fork models — locked stack (2026-04-28)
+
+The Local fork's first-milestone stack is locked. Three stages, three model choices, all open-weight.
+
+**Z-Image-Base (first-frame restyle, image model):** Chosen for ControlNet support using `depth-anything-v2` and canny edge detection. ControlNet (a technique for giving the image model a spatial layout to follow) is how the Local fork preserves composition from the Unreal source without relying on a proprietary edit API. Source: `forks/local/findings.md`, `tools/highvis-local/README.md`.
+
+Note: "Z Image" appears in the programme documentation as a model name. A flag exists in `highvis-status.json` noting that this may refer to a render pass (Unreal Z-buffer/depth) rather than a model. The locked stack uses `z-image-base` as the model identifier. CJ to confirm.
+
+**SUPIR (upscaler):** Deterministic, GPU-bound. Requires 12GB+ VRAM, which is why Classic's 8GB RTX 5070 Laptop setup uses 4x-UltraSharp instead. The Local fork targets an RTX 5090 (24GB VRAM), so SUPIR is viable. License check pending. Source: `forks/local/findings.md`, `tools/highvis-local/README.md`.
+
+**LTX-2.3 22B + IC-LoRA-HDR (video):** LTX-Video by Lightricks. Fully open weights (HuggingFace: `Lightricks/LTX-Video`; ComfyUI node pack: `Lightricks/ComfyUI-LTXVideo`). The 2.3 release is a 22B parameter variant. This is the primary video candidate for Local.
+
+The critical differentiator: Lightricks provides an HDR IC-LoRA (Image Conditioning LoRA) that generates linear HDR video encoded in ARRI LogC3, with optional output as 16-bit or 32-bit EXR sequences. In ComfyUI this is enabled by setting `OPENCV_IO_ENABLE_OPENEXR=1` before launch. Source: LTX blog post (cited in `forks/local/findings.md`: `https://ltx.io/model/model-blog/ltx-closes-the-gap-between-ai-production-with-16-bit-hdr-output`).
+
+This is the only currently-verified open-source AI video model with a documented EXR output path for VFX integration. Classic fork outputs 8-bit SDR MP4. If HighVis outputs are destined for compositing or grading pipelines, 16-bit EXR from Local lands in the timeline ready to grade, where Classic's MP4 needs intermediate conversion.
+
+**Caveat:** EXR output is via the HDR LoRA path, not the base model. Whether the LoRA shifts or degrades the visual style relative to base LTX is untested. This is an open question for the first Local test run. Source: `forks/local/findings.md`.
+
+The 2×2 image/upscaler comparison matrix planned for Local:
+
+| Test | Image model | Upscaler | Video |
+|------|-------------|----------|-------|
+| v01 baseline | Z-Image-Base | SUPIR | LTX-2.3-22b + IC-LoRA-HDR |
+| v02 | Flux.1-dev | SUPIR | LTX-2.3-22b + IC-LoRA-HDR |
+| v03 | Z-Image-Base | UltraSharp 4x | LTX-2.3-22b + IC-LoRA-HDR |
+| v04 | Flux.1-dev | UltraSharp 4x | LTX-2.3-22b + IC-LoRA-HDR |
+
+Source: `tools/highvis-local/README.md`.
+
+---
+
+## 8. Cross-Fork Comparison Matrix
+
+### 2026-04-28 — Current state, all forks
+
+Every field marked "no data yet" is pending — not estimated. Cells will be filled as test data arrives in `metadata.json` files. Source schema: `content/academic/highvis/comparison-template.md`.
+
+| Dimension | Classic | Hybrid | Local |
+|-----------|---------|--------|-------|
+| Backbone | ComfyUI + proprietary API nodes | ComfyUI + Robin's AIVFX node pack | ComfyUI + open-weight models on RunPod |
+| Cost model | ~$1.01/6s shot (Kling Pro V2V), ~$1.22/6s shot (Kling + Seedance A/B) | Pending — awaiting Robin's cost model | $0.00/shot (hardware sunk cost) |
+| Infrastructure dependency | Kling, Seedance, Nano Banana, Magnific APIs | Robin's `shwsh.co.uk` uptime + his model availability | RunPod spot GPU + open-weight model availability |
+| Open vs proprietary | Proprietary APIs throughout | Proprietary APIs via abstraction layer | Open-weight models only |
+| EXR / HDR output | No — 8-bit SDR MP4 | No data yet | Yes — 16-bit/32-bit EXR via LTX-2.3 + IC-LoRA-HDR (untested; visual style impact unknown) |
+| Clip cap (per call) | ~10s (F3) | No data yet — pending first run | No data yet — LTX-2 supports up to 20s per call (unverified in programme context) |
+| Camera match baseline | F1 confirmed — composition preserved across 6 tests, 3 video models | No data yet | No data yet — first run pending pod bootstrap |
+| Photoreal score baseline | F5 shows first-pass videogame look without constraint prompting; resolved with negative constraints | No data yet | No data yet |
+| Stability / seam visibility | Single seam-clean run achieved 2026-04-23 (SPACESHIP_UT_NB_KLC_P002_v01); needs second scene to confirm | No data yet | No data yet |
+| Chunked stitching | Flip-book method working (overlap blend + ref frame + colour match) | No data yet | Planned Phase 5 — portability of Classic method to LTX unconfirmed |
+| Setup complexity | Medium — ComfyUI + API credits | Low — one node pack, one token paste | High — model downloads, GPU config, bootstrap script |
+| First-run blocker | None — was running 2026-04-23 | Auth (resolution from Robin pending) | Pod bootstrap + workflow design (locked; awaiting "banana" deploy approval) |
+
+---
+
+## 9. Mini-Comparisons Worth Flagging
+
+### 2026-04-28 — Tests the programme needs to run
+
+These are the comparisons that will close the most important open questions. None have been run yet.
+
+**Z-Image-Base vs Flux.1-dev (image model, Local)**
+
+Both support ControlNet. Flux.1-dev is the stronger image model by general benchmark; Z-Image-Base is the locked baseline for v01. The 2×2 matrix (section 7.2) will answer this with real outputs on the Spaceship scene. Flux.1-dev requires a separate commercial-use licensing check before it can be confirmed for the programme. Source: `forks/local/findings.md`.
+
+**LTX-Video vs Kling o1 — camera preservation (cross-fork)**
+
+This is the single most important comparison the programme has not yet run. F1 confirmed that Kling o1 preserves camera motion from Unreal across both tested scenes. The Local fork's entire value proposition depends on LTX-Video being able to do the same, or being close enough. Until this test runs, the question is open.
+
+**EXR / HDR output — Local only**
+
+Classic outputs 8-bit SDR MP4. Local, via the LTX-2.3 + IC-LoRA-HDR path, targets 16-bit EXR sequences in ARRI LogC3. If the HDR path holds quality, EXR sequences land Nuke-ready and Resolve-ready without intermediate conversion; Classic cannot match this without a pipeline rebuild. Source: `forks/local/findings.md`.
+
+**Chunked stitching portability — Classic recipe to Local**
+
+Classic's flip-book stitching is built around Kling o1's specific V2V behaviour: no true start-frame parameter, reference image pair as the strongest available anchor, proprietary colour-match node. LTX-Video's V2V interface may behave differently. Whether Classic's method transfers directly, or whether a different seam strategy is needed for open-source models, is an open question. Source: `highvis-status.json` open questions.
+
+---
+
+## 10. What Comes Next Per Fork
+
+### 2026-04-28 — Next actions pulled from canonical files
+
+**Classic**
+1. Update ComfyUI to 0.3.59+ for native Seedance 2.0 and Kling o1 nodes. Source: `highvis-status.json` blockers.
+2. Install SUPIR upscaler and weights on the Classic machine (12GB+ VRAM path).
+3. Top up API credits.
+4. Run the chunked workflow on a second scene (Cityscape DP) to test whether seam-invisibility holds — only then does this become a research-grade finding. Source: `forks/classic/findings.md` open questions.
+5. Test Nano Banana outside Weavy to resolve F6 (composition drift — Weavy issue or model behaviour?).
+
+**Hybrid**
+1. Resolve auth with Robin; confirm base URL and auth config.
+2. Resolve API schema questions in `tools/highvis-hybrid/questions-for-robin.md`.
+3. Run first end-to-end test and measure cost per shot.
+4. Determine whether Robin's roadmap includes long-lived auth (without it, Hybrid cannot run in automated pipelines). Source: `forks/hybrid/findings.md`.
+
+**Local**
+1. Deploy RunPod pod with "banana" approval (codeword required before any RunPod API call).
+2. Run `pod-bootstrap.sh` and mount `Z:\`.
+3. Install ComfyUI on the volume and download model weights.
+4. Run first end-to-end test: `LC_SPACESHIP_UT_ZIMG_SUPIR_LTXHDR_P001_v01`.
+5. Run the 2×2 comparison matrix (v01–v04) to determine best image/upscaler combination.
+6. Run the cross-fork camera-preservation comparison vs Classic's Spaceship result.
+7. Investigate whether Classic's chunked stitching recipe transfers to LTX-Video (Phase 5). Source: `forks/local/findings.md`, `tools/highvis-local/README.md`.
+
+---
+
+## 11. Research Framing — The Unifying Question
+
+### 2026-04-23
+
+The programme is not trying to answer "which fork is best." Each fork sits at a different point on the infrastructure dependency axis, and each is designed to measure something distinct about what that position costs in quality, latency, and operational resilience.
+
+Classic is the quality benchmark. It uses the best proprietary models available today, and if Classic cannot match a reference result, nothing on this programme can. Every cross-fork comparison is measured against its outputs.
+
+Hybrid uses the same underlying models as Classic, but routes them through Robin's abstraction layer. The hypothesis is that this buys lower setup friction and potentially lower per-shot cost without a quality penalty. Whether the hypothesis holds is an empirical question; the first Hybrid test run will begin to answer it.
+
+Local is the open-source path, running on RunPod GPU with no per-shot API spend. Open-source video models are weaker than Kling o1 today on the metric that matters most here — camera preservation — and closing that gap is the measurement Local exists to make. When the quality gap closes to an acceptable level, Local becomes the production path, not purely because it is cheaper, but because it does not break when an API changes pricing or goes offline.
+
+The shared scoring rubric (`camera_match_score`, `photoreal_score`, `stability_score`, `cost_usd`, `wall_time_s`) applied consistently across every test on every fork is what makes these comparisons meaningful rather than impressionistic. The cross-fork comparison matrix in section 8 will fill in as tests run, with every claim traceable back to a `metadata.json` file. Throughout all three forks, the underlying architectural principle holds: Unreal owns composition, AI owns photoreal, and the pipeline is designed so that principle survives any individual model becoming obsolete.
+
+---
+
+## 12. Engineering Decisions Worth Recording
+
+This section captures small architectural calls that aren't findings, but shape the rest of the build. Each one is documented at the moment it's made, so future sessions don't relitigate it.
+
+### 2026-04-28 — Local v01 workflow uses a Preview / Final toggle
+
+The Local-fork v01 workflow runs in two stages with a hard split.
+
+Stage 1 (PREVIEW) always runs. It outputs a 720p MP4 in roughly 30-45 seconds. Resolution is forced regardless of source so the preview is always fast.
+
+Stage 2 (FINAL) is gated by a `run_final` toggle. When ON, it outputs a source-resolution MP4 plus a 16-bit EXR sequence. When OFF, the workflow stops after Stage 1.
+
+Implementation is an `ImpactSwitch` (or essentials `Switch any`) on the latent feeding the final sampler. When the toggle is OFF the switch passes nothing downstream, so ComfyUI skips the entire FINAL chain — no wasted compute. Inside each stage, the MP4 save is ordered before the EXR save, so a bad preview can be cancelled before the EXR write begins.
+
+The reasoning: most iterations on a shot are about prompt, style references, and motion — questions that a 720p MP4 answers. EXR is a finishing-pass concern that doesn't need to run on every iteration. One workflow file, two purposes, zero duplicated graph.
+
+Source: `state/highvis-v01-workflow-spec.md`.
+
+### 2026-04-28 — Frame rate and frame count read from source by default
+
+Output frame rate and frame count are auto-extracted from the input clip via `GetVideoComponents.frame_rate`. That single number wires through to `SaveVideo`, the EXR sequence writer, and `EmptyLTXVLatentVideo` — one source of truth, downstream nodes never disagree.
+
+Two override toggles (`use_manual_fps`, `use_manual_frames`) expose manual widgets when an output spec genuinely differs from the input. The frame count is snapped to LTX-valid `8N+1` via `SimpleMath+` so the latent dimensions always line up.
+
+The reasoning: most shots inherit their cadence from the source plate. If a 30 fps render goes in, a 30 fps output should come out without anyone touching a number. The override is for the cases that intentionally break that rule.
+
+Source: `state/highvis-v01-workflow-spec.md`.
+
+### 2026-04-28 — Cloud GPU mounted as a local drive
+
+Local-fork compute runs on a RunPod cloud GPU mounted as `Z:\` on the workstation via `rclone` over SFTP with WinFsp providing the Windows drive letter. Compute jobs go through `ssh runpod "..."`. The pod's `/workspace` is the local Claude session's filesystem-of-record for HighVis Local files; persistence sits on a Network Volume that survives pod stop/destroy.
+
+The reasoning: the alternative was running Claude Code inside the pod itself, which would lose this session's memory, agents, and skills. Mounting flips the dependency. The local session stays whole, and the pod is just disk plus GPU. Eleven-step bootstrap checklist lives at `state/handover-runpod-highvis-local.md`.
+
+Source: `tools/highvis-local/runpod/`, `state/handover-runpod-highvis-local.md`.
+
+---
+
+*Living document. Append new sessions below existing sections using `### YYYY-MM-DD — [description]` as the subsection header. Do not reorganise existing sections when adding.*
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script>
+(function () {
+  const src = document.getElementById('md-source').textContent;
+  const article = document.getElementById('content');
+  const tocList = document.getElementById('toc-list');
+
+  marked.setOptions({ gfm: true, breaks: false });
+  article.innerHTML = marked.parse(src);
+
+  // Wrap tables for horizontal scroll
+  article.querySelectorAll('table').forEach(t => {
+    const wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+
+  // Build TOC from h2
+  const headings = article.querySelectorAll('h2');
+  headings.forEach((h, i) => {
+    const id = 'sec-' + (i + 1);
+    h.id = id;
+    const li = document.createElement('li');
+    const a = document.createElement('a');
+    a.href = '#' + id;
+    a.textContent = h.textContent.replace(/^\d+\.\s*/, '');
+    li.appendChild(a);
+    tocList.appendChild(li);
+  });
+
+  // Active section tracking
+  const links = tocList.querySelectorAll('a');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const active = tocList.querySelector('a[href="#' + entry.target.id + '"]');
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-80px 0px -70% 0px' });
+  headings.forEach(h => observer.observe(h));
+})();
+</script>
+
+</body>
+</html>

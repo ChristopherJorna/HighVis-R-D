@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HighVis — One-Minute Video Scripts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="highvis-shared.css">
+<style>
+  .post-body article p strong { color: var(--accent); }
+</style>
+</head>
+<body data-page="scripts">
+
+<div class="layout">
+  <main>
+    <section class="hero hero--wide">
+      <div class="eyebrow">Video Scripts · 2026-04-28</div>
+      <h1 class="title">Five 60-second scripts. Hook. Setup. Middle. Payoff. CTA.</h1>
+      <p class="subtitle">Spoken-word voice. Roughly 150 words each. Built from the same canonical sources as the blog and social posts — same facts, compressed for camera.</p>
+    </section>
+
+    <div class="post-stack" id="post-stack">
+      <div class="loading">Rendering scripts…</div>
+    </div>
+
+    <div class="colophon">
+      <p><strong>Recording note.</strong> Targets are 60 seconds at natural pace. If a beat runs long, cut from MIDDLE — keep HOOK, PAYOFF, CTA intact.</p>
+    </div>
+  </main>
+
+  <aside class="toc" id="toc">
+    <div class="toc-title">Scripts</div>
+    <ul id="toc-list"></ul>
+  </aside>
+</div>
+
+<script src="highvis-nav.js"></script>
+<script src="highvis-review.js" defer></script>
+
+<script type="application/json" id="scripts-meta">
+[
+  { "slug": "01", "eyebrow": "Script 01 · 60s", "title": "Why I'm building three pipelines instead of one", "meta": "~150 words · spoken-word" },
+  { "slug": "02", "eyebrow": "Script 02 · 60s", "title": "Classic — about a dollar a shot for the quality ceiling", "meta": "~150 words · spoken-word" },
+  { "slug": "03", "eyebrow": "Script 03 · 60s", "title": "The Hybrid bet — outsourcing the boring infrastructure", "meta": "~150 words · spoken-word" },
+  { "slug": "04", "eyebrow": "Script 04 · 60s", "title": "Going fully local — zero per-shot cost, open weights, RunPod", "meta": "~150 words · spoken-word" },
+  { "slug": "05", "eyebrow": "Script 05 · 60s", "title": "What this is actually for", "meta": "~150 words · spoken-word" }
+]
+</script>
+
+<script type="text/markdown" id="script-01">
+**HOOK (0–3s)**
+AI video generation is photoreal on first pass. But try to control the shot... it falls apart.
+
+**SETUP (3–10s)**
+Every time you touch the prompt, the framing changes. Different look, different camera, different everything. So we built a pipeline that splits the problem.
+
+**MIDDLE (10–45s)**
+Unreal Engine handles the camera. Precise, repeatable, locked. AI handles the look. You render a low-fidelity Unreal pass — grey, depth map, whatever's fast. Pull the first frame. Restyle it with an image model. Upscale it. Then feed that styled frame back into a video model alongside the original footage.
+
+What comes out is a video that moves like the Unreal render... and looks like the AI image.
+
+We tested it across two scenes and three video models. The composition survived the handoff intact every time.
+
+But then the real question: where does all that compute live? Who pays for it?
+
+Turns out that question has three different answers. So we're running all three in parallel. Classic, best proprietary models, about a dollar a shot. Hybrid, same models, someone else's infrastructure. Local, open weights, zero per-shot cost.
+
+**PAYOFF (45–55s)**
+The design rule across all three: models are config values, not baked-in nodes. New model drops next month? One-line change. That's the thing that doesn't age.
+
+**CTA (55–60s)**
+Full breakdown in the blog post. Which fork would you build first?
+</script>
+
+<script type="text/markdown" id="script-02">
+**HOOK (0–3s)**
+About a dollar a shot. That's the quality ceiling. Let me show you what it buys.
+
+**SETUP (3–10s)**
+Classic is the benchmark fork. Nano Banana Pro, Kling o1, Seedance 2.0, Magnific. Best commercial models, wired in ComfyUI, all cloud APIs. Fast to iterate. Someone else's GPU.
+
+**MIDDLE (10–45s)**
+First test day: two scenes, three video models, six tests. Core finding: the Unreal-to-AI handoff works. Composition survives intact. Camera move, framing, spatial layout — all preserved.
+
+A few things we didn't expect. The grey matte beat the depth map on first pass. Depth carries distance, but no light or texture cues, so the model has to invent all of it. Grey gives it more to lock onto. And without explicit negative constraints in the prompt — "not CGI, not illustrated, not a video game" — the first pass looks rendered. Every time.
+
+Then we hit the wall. Every model caps a single call somewhere in the 5-15 second range. Kling, Luma, Wan, Seedance. Different exact numbers, same problem.
+
+So we built flip-book stitching. Generate two batches. Start batch two a few frames before batch one ends. Blend the overlap. Hand batch two a reference frame so it knows where to start. Colour-match across the join so the palette doesn't drift.
+
+First seam-clean run. Six seconds. No visible pop.
+
+**PAYOFF (45–55s)**
+One scene. Still needs to hold on a second before it's research-grade. But the recipe is there.
+
+**CTA (55–60s)**
+Full breakdown in the blog. What would you try differently on the stitch?
+</script>
+
+<script type="text/markdown" id="script-03">
+**HOOK (0–3s)**
+What if someone had already solved all the boring infrastructure problems... and you just routed through their layer?
+
+**SETUP (3–10s)**
+Building Classic means wiring every API separately. Frame-rate handling, resolution normalisation, duration caps, moderation. Provider quirks. That's a lot of plumbing for zero creative value.
+
+**MIDDLE (10–45s)**
+The Hybrid fork is a bet that we don't need to solve that ourselves.
+
+Robin runs an infrastructure layer called AIVFX. Same models as Classic — Kling o1, Seedance 2.0, Wan 2.7. But instead of calling each provider directly, you route through his layer and he handles all the adapter work.
+
+The ComfyUI graph is already wired. Custom node pack in place. Three parallel video branches matching Classic's A/B/C structure.
+
+What we don't know yet: is it cheaper? Faster? Does quality hold? No data because Hybrid hasn't completed a first run.
+
+It's blocked on auth. We need a long-lived credential path from Robin before it can run automated. Until then, it's a per-session workaround, not a pipeline.
+
+**PAYOFF (45–55s)**
+One conversation with Robin clears most of the blockers. The question it answers is genuinely interesting: what does infrastructure abstraction actually buy you?
+
+**CTA (55–60s)**
+More in the blog post. If you've wired up M2M auth for an external API like this before, I want to hear how you handled it.
+</script>
+
+<script type="text/markdown" id="script-04">
+**HOOK (0–3s)**
+Zero per-shot cost. No API dependency. The catch? We haven't run it yet.
+
+**SETUP (3–10s)**
+Classic is good. But every stage depends on a proprietary API. One pricing change, one rate limit, the pipeline breaks. The Local fork is the other trade.
+
+**MIDDLE (10–45s)**
+Fully open weights. RunPod GPU, accessed over SSH. Network volume mounted as a local drive via rclone SFTP — so Claude Code running locally can read and write the workspace directly. Intermediate outputs sit on a mapped drive. You can open the restyled frame in Windows Explorer mid-run.
+
+Model stack locked: Z-Image-Base for first-frame restyle with ControlNet, depth-anything-v2 and canny for composition preservation. SUPIR for upscaling. And LTX-2.3 22 billion parameters with the IC-LoRA-HDR for video.
+
+That last one is interesting. Lightricks built an HDR LoRA that outputs linear HDR video in ARRI LogC3. 16-bit or 32-bit EXR sequences. In ComfyUI, one environment variable and you're there.
+
+Classic outputs 8-bit SDR MP4. If this footage is going into Nuke or Resolve, that's a meaningful difference.
+
+**PAYOFF (45–55s)**
+The open question: can LTX-2.3 preserve camera motion from a Unreal source the way Kling o1 does? That's what the first cross-fork comparison will measure. We'll find out.
+
+**CTA (55–60s)**
+Full architecture in the blog. Are you running open-source video models for VFX work? What are you seeing on camera preservation?
+</script>
+
+<script type="text/markdown" id="script-05">
+**HOOK (0–3s)**
+Three forks. One proven. Two haven't run yet. Here's why that's fine.
+
+**SETUP (3–10s)**
+HighVis isn't about picking the best pipeline. It's about measuring three different points on the same axis: where does the compute live, and who pays for it?
+
+**MIDDLE (10–45s)**
+Classic says let the cloud take it. About a dollar a shot, best models, fragile on API dependency.
+
+Hybrid says let someone else's cloud take it, through a layer that's already solved the provider friction. Cost unknown. First run pending.
+
+Local says own it. Zero per-shot cost, open weights, but open-source camera preservation unproven.
+
+Every single test across all three forks carries the same five fields: camera match, photoreal score, stability score, cost, wall time. Same scenes, same questions, same units. That's how you compare honestly when the models keep changing.
+
+What's proven so far: the core architecture works. Unreal for composition, AI for photoreal, chunked stitching for duration. Two scenes, six tests, one clean stitched shot.
+
+What isn't proven: whether open-source models can match Kling on camera preservation. Whether the HDR LoRA degrades LTX's visual style. Whether Classic's stitching recipe even transfers to open-source V2V.
+
+**PAYOFF (45–55s)**
+Those aren't rhetorical questions. That's the actual work. And the design principle that holds regardless: models are config values. New SOTA drops? One-line change. That's the thing that ages well.
+
+**CTA (55–60s)**
+Full write-up in the blog. Follow along — next post is the first Local run.
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script>
+(function () {
+  const meta = JSON.parse(document.getElementById('scripts-meta').textContent);
+  const stack = document.getElementById('post-stack');
+  const tocList = document.getElementById('toc-list');
+  stack.innerHTML = '';
+  marked.setOptions({ gfm: true, breaks: false });
+
+  meta.forEach(p => {
+    const md = document.getElementById('script-' + p.slug).textContent;
+    const card = document.createElement('article');
+    card.className = 'post-card';
+    card.id = 'script-' + p.slug;
+
+    const eyebrow = document.createElement('div');
+    eyebrow.className = 'post-eyebrow';
+    eyebrow.textContent = p.eyebrow;
+    card.appendChild(eyebrow);
+
+    const title = document.createElement('h2');
+    title.className = 'post-title';
+    title.textContent = p.title;
+    card.appendChild(title);
+
+    const metaLine = document.createElement('div');
+    metaLine.className = 'post-meta';
+    metaLine.textContent = p.meta;
+    card.appendChild(metaLine);
+
+    const body = document.createElement('div');
+    body.className = 'post-body';
+    const inner = document.createElement('article');
+    inner.innerHTML = marked.parse(md);
+    body.appendChild(inner);
+    card.appendChild(body);
+
+    stack.appendChild(card);
+
+    const li = document.createElement('li');
+    const a = document.createElement('a');
+    a.href = '#script-' + p.slug;
+    a.textContent = p.title;
+    li.appendChild(a);
+    tocList.appendChild(li);
+  });
+})();
+</script>
+
+</body>
+</html>

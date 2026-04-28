@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HighVis — Executive Summary</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="highvis-shared.css">
+</head>
+<body data-page="summary">
+
+<div class="layout layout--single">
+  <main>
+    <section class="hero hero--wide">
+      <div class="eyebrow">Executive Summary · 2026-04-28</div>
+      <h1 class="title">HighVis at a glance.</h1>
+      <p class="subtitle">A three-fork R&amp;D programme building a render pipeline where Unreal Engine handles composition and AI handles photoreal. Three parallel implementations measure three different points on the infrastructure dependency axis. Same architecture, same scoring rubric, different model stacks.</p>
+    </section>
+
+    <article class="article--wide" id="content">
+      <div class="loading">Rendering…</div>
+    </article>
+
+    <div class="colophon">
+      <p><strong>Every claim above traces to a canonical source file.</strong> See the <a href="highvis.html">hub</a> for the full source list.</p>
+    </div>
+  </main>
+</div>
+
+<script src="highvis-nav.js"></script>
+<script src="highvis-review.js" defer></script>
+
+<script type="text/markdown" id="md-source">
+## What HighVis is
+
+HighVis is a render pipeline that takes a low-fidelity Unreal Engine output and restyles it with AI into photoreal video, while keeping the camera move, framing, and spatial layout from the original render intact. The split is deliberate: Unreal handles what it is good at (precise repeatable camera, composition, scene layout), AI handles what it is good at (materials, atmosphere, photoreal surfaces). Neither tool is asked to do the other's job.
+
+## How it works (six steps)
+
+1. Render the Unreal scene at whatever fidelity is fast — untextured grey, depth pass, wireframe.
+2. Extract the first frame.
+3. Restyle that frame with an AI image model (prompt + style references).
+4. Upscale the restyled frame.
+5. Feed the restyled-and-upscaled frame plus the original Unreal video into a video model that rerenders the motion in the new style.
+6. For shots over the model's per-call cap (~10s), generate in chunks and stitch using the last frame of chunk one as the opening reference of chunk two.
+
+## The three forks
+
+| Fork | What it answers | Status | Cost / shot |
+|------|-----------------|--------|-------------|
+| **Classic** | What is the quality ceiling using the best proprietary tools? | Active · benchmark fork | ~$1.01 (Kling Pro) · ~$1.22 (with Seedance A/B) |
+| **Hybrid** | What does routing through an abstraction layer (Robin's AIVFX) buy in cost / latency / resilience? | Dormant · blocked on auth | TBD — first run pending |
+| **Local** | How much quality do you sacrifice to eliminate per-shot cost and all API dependency? | Active · build phase on RunPod RTX 5090 | $0.00 |
+
+## Locked Local stack (2026-04-28)
+
+| Stage | Model | Notes |
+|-------|-------|-------|
+| First-frame restyle | `z-image-base` | ControlNet (depth-anything-v2 + canny) for composition preservation |
+| Upscaler | `supir` | Deterministic, GPU-bound, license check pending |
+| Video | `ltx-2.3-22b-hdr` + `IC-LoRA-HDR` | Open weights, 16/32-bit EXR output via `OPENCV_IO_ENABLE_OPENEXR=1` |
+
+The EXR / HDR output path is the differentiator. Classic outputs 8-bit SDR MP4; Local targets linear HDR LogC3 in 16-bit EXR sequences. This is the only currently-verified open-source AI video model with a documented EXR output path for VFX integration.
+
+## What has been proven
+
+- **F1 — Composition survives the handoff.** Camera motion, framing, and spatial relationships from the Unreal source are preserved across 6 tests, 2 scenes, 3 video models. Source: `forks/classic/findings.md`, `board_data.json`.
+- **F2 — More info in the source = more deterministic restyle.** Grey matte beat depth map on first pass. Depth encodes distance, not light or material, so the model invents the rest. Grey gives it more to lock onto.
+- **F3 — Per-clip caps land in the 5-15s range across tested models.** Kling o1 V2V ~5-10s, Luma Modify 10s, Wan 2.7 2-15s (T2V/I2V) / 2-10s (R2V), Seedance 2.0 10s. Camera moves longer than that require chunked stitching.
+- **F4 — Structural image edits are unreliable in a single prompt.** Two-pass editing succeeded where single-pass failed.
+- **F5 — Negative style constraints are required, not optional.** "Not CGI, not illustrated, not a video game" was needed alongside style references.
+- **First seam-clean chunked run achieved 2026-04-23.** Two 3-second Kling o1 chunks producing a 6-second seamless output. Test ID `SPACESHIP_UT_NB_KLC_P002_v01`. Five-lever recipe documented.
+
+## What is still open
+
+- Whether open-source video models (LTX-2.3) can match Kling o1 on camera preservation. **The single most important open question.**
+- Whether the HDR LoRA shifts or degrades visual quality relative to base LTX.
+- Whether Classic's chunked stitching recipe transfers to LTX-Video, or whether open-source models need a different seam strategy.
+- Whether Hybrid's abstraction layer measurably reduces cost or latency vs Classic. Pending first run.
+- Whether F6 (Weavy composition drift) is a Weavy-specific routing issue or a Nano Banana model behaviour. Test outside Weavy.
+
+## The architectural bet
+
+The specific models in use at any point are choices made under uncertainty. The pipeline shape — Unreal for composition, AI for photoreal, chunked stitching for duration, models as config values rather than baked-in nodes — holds because the reasoning behind it holds. When a new SOTA open-source model lands (currently a months-cadence event), the pipeline inherits it through a config change, not a rewrite. The architecture is designed so that model improvement is free.
+
+## What comes next
+
+**Classic** — update ComfyUI to 0.3.59+, install SUPIR locally, top up API credits, run the chunked workflow on Cityscape DP to test seam-invisibility on a second scene, test Nano Banana outside Weavy.
+
+**Hybrid** — resolve auth with Robin, confirm API schema, run first end-to-end test, measure cost per shot.
+
+**Local** — deploy RunPod pod, install ComfyUI on the network volume, download model weights, run first end-to-end test (`LC_SPACESHIP_UT_ZIMG_SUPIR_LTXHDR_P001_v01`), then run the 2×2 comparison matrix and the cross-fork camera-preservation comparison vs Classic's Spaceship result.
+
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script>
+(function () {
+  const src = document.getElementById('md-source').textContent;
+  const article = document.getElementById('content');
+  marked.setOptions({ gfm: true, breaks: false });
+  article.innerHTML = marked.parse(src);
+  article.querySelectorAll('table').forEach(t => {
+    const wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+})();
+</script>
+
+</body>
+</html>

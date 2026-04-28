@@ -267,3 +267,37 @@ Added HighVis R&D card to `tools/launcher/marvin_tray.py`:
 - [ ] Consider Netlify/GitHub Pages deploy for sharing with Fivefold team
 - [ ] Process any new dump files as more tests are run
 - [ ] Pipeline page (pipeline.html) — may need updating to reflect lit pass and new structure
+
+---
+
+## Session 3 — 2026-04-23 (Classic fork: first seam-clean chunked Kling V2V)
+
+### What worked
+
+First seam-clean chunked Kling V2V run on the HighVis Classic Renderer pipeline. Two 3s chunks blended into a visibly seamless 6s output from an untextured Unreal source. This is the first time the chunked Kling workflow has produced an audience-invisible seam, which directly tests open question #1 on the Classic fork (seam visibility).
+
+### Technical levers that made it work
+
+1. **Chunk 1 tail → chunk 2 reference.** Last frame of chunk 1 fed into `reference_images[0]` on chunk 2 via a SetNode/GetNode teleport pair (`Set_chunk1_tail` / `Get_chunk1_tail`) — avoids a long crossed wire and keeps the graph readable.
+2. **Restyle as second reference.** The Gemini restyled frame fed in as `reference_images[1]` (`restyle_ref`) so chunk 2 has both pixel continuity (from chunk 1 tail) and style continuity (from the master restyle).
+3. **ColorMatch re-grade.** `kjnodes ColorMatch` method=`mkl` re-grades chunk 2 to chunk 1 before the join — hides exposure/tint drift even if residual texture drift remains.
+4. **Prompt anchor on chunk 2.** Node 30 chunk-2 prompt prefixed with "HARD FIRST FRAME / opening pixel parity" language telling the model to open pixel-for-pixel on `reference_images[0]`. Neither Kling nor Seedance has a true start-frame parameter for V2V / R2V, so prompt + reference is the strongest anchor available.
+5. **Crossfade widened 16 → 24 frames.** Full 1s crossfade at 24fps on `ImageBatchJoinWithTransition` node 38. Old 16-frame (~0.67s) crossfade left a detectable pop; 24 is smooth on this test.
+
+Fixed `seed=42` on both Kling nodes — doesn't guarantee pixel-identical renders (Kling is non-deterministic on the API) but eliminates deliberate variance between chunks.
+
+### Proof
+
+- Chunk 2 raw Kling output: `content/output/highvis/classic/highvis-classic-renderer-chunk2-raw-preview-2026-04-23.png`
+- Final assembled 6s output: `content/output/highvis/classic/highvis-classic-renderer-final-kling-chunked-2026-04-23.png`
+
+### Workflow
+
+- Live workflow: `tools/highvis-classic/workflow-kling-chunked.json` (latest seam patch not yet committed at log time — baseline committed 2026-04-23 as ad15232; layout fix acc48fb; seam fixes + Seedance variant 55ee75d)
+- Seedance variant, same structure, not yet tested: `tools/highvis-classic/workflow-seedance-chunked.json`
+
+### Gotchas / still to verify
+
+- Only tested on one untextured Unreal source — need a second scene before calling seam-invisibility a research-grade claim.
+- `ColorMatch` requires `pip install color-matcher` in the ComfyUI python env (easy to miss on a new install).
+- `reference_images` slot ordering matters — chunk 1 tail MUST be image 1, restyle MUST be image 2 (matches the SEAM ANCHOR prompt wording).

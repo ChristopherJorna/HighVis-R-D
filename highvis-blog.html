@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HighVis — VFX Blog Series</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="highvis-shared.css">
+</head>
+<body data-page="blog">
+
+<div class="layout">
+  <main>
+    <section class="hero hero--wide">
+      <div class="eyebrow">VFX Blog Series · 2026-04-28</div>
+      <h1 class="title">HighVis: build notes from the floor.</h1>
+      <p class="subtitle">Five posts walking through the programme as it was actually built. What worked, what didn't, what's still open. Written for VFX practitioners who want the working version, not the academic one.</p>
+    </section>
+
+    <div class="post-stack" id="post-stack">
+      <div class="loading">Rendering posts…</div>
+    </div>
+
+    <div class="colophon">
+      <p><strong>For the formal academic version, see the <a href="research-log.html">Research Log</a>.</strong></p>
+    </div>
+  </main>
+
+  <aside class="toc" id="toc">
+    <div class="toc-title">Posts</div>
+    <ul id="toc-list"></ul>
+  </aside>
+</div>
+
+<script src="highvis-nav.js"></script>
+<script src="highvis-review.js" defer></script>
+
+<script type="application/json" id="posts-meta">
+[
+  { "slug": "01", "eyebrow": "Post 01 · Why three forks", "title": "Why I'm building three pipelines instead of one", "meta": "5 min read · 2026-04-28" },
+  { "slug": "02", "eyebrow": "Post 02 · Classic", "title": "Classic: about a dollar a shot for the quality ceiling", "meta": "5 min read · 2026-04-28" },
+  { "slug": "03", "eyebrow": "Post 03 · Hybrid", "title": "The Hybrid bet: outsourcing the boring infrastructure", "meta": "4 min read · 2026-04-28" },
+  { "slug": "04", "eyebrow": "Post 04 · Local", "title": "Going fully local: zero per-shot cost, open weights, RunPod", "meta": "5 min read · 2026-04-28" },
+  { "slug": "05", "eyebrow": "Post 05 · Synthesis", "title": "What this is actually for", "meta": "5 min read · 2026-04-28" }
+]
+</script>
+
+<script type="text/markdown" id="post-01">
+So here's the thing about AI video generation. It's photoreal on first pass. In minutes. For almost nothing. But try to control the framing and it falls apart completely. Change the prompt, get a different shot. Different shot, different everything.
+
+That problem is what HighVis is trying to solve.
+
+The idea is simple: Unreal Engine handles the camera. AI handles the look. Unreal gives you a precise, repeatable shot — untextured grey pass, depth map, whatever fidelity is fast. You pull the first frame, restyle it with an image model, upscale it, then feed that styled frame back into a video model alongside the original Unreal footage. What comes out is a video that moves like the Unreal render and looks like the AI image.
+
+The composition is locked, the director stays in control, and the model only handles what it's actually good at.
+
+We tested this on two scenes (a spaceship interior and a Riyadh cityscape) across three video models, and the composition survived the handoff in every test. That was the load-bearing finding for the whole programme, and so far it's holding up.
+
+But then the obvious next question: where does all that compute actually live? And who pays for it?
+
+Turns out that question has three different answers depending on what you care about. So instead of picking one, we're running all three as parallel forks.
+
+**Classic** is the quality benchmark. Best commercial models available right now, wired together in ComfyUI. Nano Banana Pro for image restyle, Kling o1 and Seedance 2.0 for video, Magnific for upscaling. Fast to iterate because all the heavy lifting is running on someone else's GPU. Cost is roughly one dollar per six-second shot running Kling alone, closer to $1.20 if you run Kling and Seedance in parallel for A/B comparison. The catch: the whole pipeline is exposed at every API. One pricing change, one rate limit, and you're stuck.
+
+**Hybrid** is the middle path. Same underlying models as Classic, but routed through Robin's external infrastructure at `shwsh.co.uk` instead of calling providers directly from a local machine. He's already solved the fiddly stuff — frame-rate handling, resolution normalisation, duration caps, provider quirks. The ComfyUI graph is wired. We just need the auth sorted.
+
+**Local** is the long bet. Fully open-source, running on a RunPod GPU, zero per-shot cost. The whole thing mounted as a local drive via rclone SFTP so Claude Code can read and write the workspace directly. The honest caveat: open-source video models are weaker than Kling o1 today on the thing that matters most here — camera preservation. That gap is the whole point. We measure it.
+
+Three forks, three different answers to the same question.
+
+The design principle that holds across all of them: models are config values, not baked-in nodes. New SOTA model drops next month? One-line change. That's the bet that ages well, regardless of which specific tools are winning right now.
+
+This series covers all three. Classic first — where we hit the quality ceiling and had to solve a stitching problem nobody warned us about.
+</script>
+
+<script type="text/markdown" id="post-02">
+The Classic fork exists to answer one question: what's the quality ceiling for this approach, using the best proprietary tools available right now?
+
+Everything else on the programme — Hybrid, Local — gets benchmarked against whatever Classic produces. So it matters that Classic is actually using the best stuff. Right now that's Nano Banana Pro for image restyle, Flux 2 Pro and Magnific for generation and upscaling, Kling o1 and Seedance 2.0 for video. All wired in ComfyUI, all calling cloud APIs. The heavy compute is someone else's problem. You pay per shot instead.
+
+Verified pricing: Kling o1 Pro V2V at $0.168/sec, Seedance 2.0 at $0.035/sec. For a six-second shot that's about $1.01 for Kling alone, around $1.22 with Seedance running in parallel for A/B. Not free, but not bad if the results hold.
+
+The first proper test day ran two scenes (a spaceship interior on an untextured grey pass, and a Riyadh cityscape on a depth map) across three video models, six tests in total. The core finding was that the handoff works. Camera, framing, and spatial relationships all came through intact, across both scenes and every model we tested. That's F1, and it's the load-bearing result for everything else on the programme.
+
+A few other things came out of that day. On source-image work like this, the more concrete visual information you give the image model the better. The grey matte from the Spaceship carried explicit lighting, surface tone, and rough material cues. The depth map from the Cityscape only encoded distance and left lighting and texture for the model to invent. Grey gave the model less to imagine, which made it more deterministic. Depth as a ControlNet would behave differently; here it was the source, not a control.
+
+The videogame-look problem was real. Feed a depth map into an image model without explicit constraints and what comes back tends to look rendered rather than photographic. A style reference on its own wasn't enough; we had to add hard negative language to the prompt too ("not CGI, not illustrated, not a video game") or the model defaulted to a CG-looking result most of the time.
+
+There's also a wall every video model runs into. Every one we tested caps a single V2V call somewhere in the 5-15 second range. Kling o1 V2V around 5-10s. Luma Modify 10s max input. Wan 2.7 up to 15s for text/image-to-video, capped at 10s for reference-to-video. Seedance 2.0 at 10s flat. That's F3, and it's a real constraint. Camera moves have to be designed within that window, or you stitch.
+
+So we built flip-book stitching. Picture a flip book where every page is one frame of video. Kling can only draw a few seconds of pages at a time, so you generate two batches and overlap them. The second batch starts a few pages before the first batch ends, the overlapping pages get blended so you can't see where one stops and the next begins, and batch two is handed the last page of batch one as a reference so it knows what to draw on. A colour-match pass keeps the palette consistent across the join. First seam-clean run landed on 23 April — two ~3-second Kling o1 chunks producing a 6-second output with no visible pop. Test ID `SPACESHIP_UT_NB_KLC_P002_v01` if you want to look it up.
+
+Concrete settings on this run: chunk length 72 frames (3s @ 24fps), overlap blend widened from 16 to 24 frames after the 16-frame version left a detectable pop, `kjnodes ColorMatch` method `mkl` re-grading chunk two to chunk one before the crossfade, the chunk two prompt prefixed with "HARD FIRST FRAME / opening pixel parity" language since Kling V2V has no true start-frame parameter, last frame of chunk one wired as `reference_images[0]` on chunk two via rgthree SetNode/GetNode teleport, Gemini restyle frame as `reference_images[1]` for style continuity, fixed seed 42 on both calls.
+
+That's one scene, one run. It needs to hold on the cityscape next before it's research-grade.
+
+There's one other thing from the test day worth flagging. When we combined a depth map and a photographic style reference in Weavy, Nano Banana started reinterpreting the composition rather than preserving it. Treated the style reference as a layout input. That's likely a Weavy-specific routing issue, not a model behaviour — but until we've tested Nano Banana directly outside Weavy with the same inputs, we're not treating it as solved.
+
+Classic right now sits at about a dollar a shot, with a tight quality ceiling and a working stitch. Everything else on the programme gets measured against it.
+</script>
+
+<script type="text/markdown" id="post-03">
+Classic works. But building Classic means dealing with every API separately. Frame-rate handling. Resolution normalisation. Duration caps. Provider-specific quirks. Moderation pipelines. Each provider does things slightly differently and you end up writing a lot of plumbing that has nothing to do with the actual shot.
+
+The Hybrid fork is a bet that someone has already written that plumbing, and we should just use theirs.
+
+Robin runs an infrastructure layer at `shwsh.co.uk` — his AIVFX pipeline — that sits between ComfyUI and the underlying model providers. Same models as Classic: Kling o1, Seedance 2.0, Wan 2.7. But instead of wiring each provider API directly, you route calls through his layer and he handles the adapter work. Frame rates normalised. Resolutions handled. Duration caps managed. API quirks absorbed.
+
+The research question this fork is testing: what does that abstraction buy you in cost, latency, and resilience? We genuinely don't know yet. Could be cheaper than Classic's ~$1/shot. Could be the same. Could surface model availability we don't get directly. No data yet because Hybrid hasn't completed a first run.
+
+The ComfyUI side is already wired. Custom node pack in place covering auth, image upload, video upload, image restyle, and V2V generation. Three parallel video branches — Kling, Seedance, Wan — matching Classic's A/B/C structure. If it runs, it runs the same comparison you'd run in Classic, just via Robin's layer rather than direct API calls.
+
+What it's waiting on is auth. We need a long-lived credential path from Robin before Hybrid can run automated. The current arrangement is per-session, fine for one test, not for a pipeline.
+
+The other blockers are straightforward things that require a short conversation: base URL confirmation, auth config, API schema verification for the video generation endpoints. All documented in `tools/highvis-hybrid/questions-for-robin.md`. One call with Robin and most of that clears.
+
+So Hybrid is dormant, but it's not vaporware. The graph exists. The nodes are built. The plumbing is there. It just needs auth resolved and answers to a few schema questions before it can run.
+
+Whether it's actually worth running is the question the first test will answer. If the cost is lower and the quality holds, it becomes the obvious production path for Classic-grade outputs without Classic's per-shot exposure. If the latency is worse or the cost is similar, the abstraction layer doesn't buy much and the case for Hybrid weakens.
+
+Honest position right now: we don't know. That's what the first run is for.
+</script>
+
+<script type="text/markdown" id="post-04">
+Classic is good, but it's fragile. Every stage depends on a proprietary API, and if any one of them changes pricing or gets rate-limited the whole chain breaks. That's the trade you make for fast iteration and high quality.
+
+The Local fork is the other side of that trade. There's no per-shot cost, no external API in the chain, and the weights are fully open. The honest downside is that today's open-source video models are still weaker than Kling o1 on the thing that matters most here, which is camera preservation. That gap isn't a reason not to build Local; it's the entire measurement the fork exists to produce. When the gap closes enough to call it production-ready, Local becomes the path you actually ship on.
+
+The infrastructure setup is already running. RunPod GPU accessed via `ssh runpod`, with a 65GB network volume mounted as `Z:\` on Windows through rclone SFTP and WinFsp. The key thing about that SFTP-mount pattern: Claude Code running locally gets direct read/write access to `/workspace` on the pod as if it were a local folder. Intermediate outputs sit on `Z:\` and you can open them in Windows Explorer mid-run. No separate download step to check whether the restyled frame is any good.
+
+The model stack for the first milestone is locked. Z-Image-Base for first-frame restyle, using ControlNet with `depth-anything-v2` and canny edge detection to preserve composition from the Unreal source. SUPIR for upscaling — deterministic, GPU-bound, needs 12GB+ VRAM which is why it's not viable on Classic's laptop GPU but is fine on the RunPod RTX 5090. And LTX-2.3 22B with the IC-LoRA-HDR for video.
+
+That last one is worth dwelling on. LTX-Video is from Lightricks. Fully open weights on HuggingFace. The 2.3 release is a 22 billion parameter variant. And Lightricks has an HDR IC-LoRA that generates linear HDR video encoded in ARRI LogC3, with 16-bit or 32-bit EXR output. In ComfyUI you enable it by setting `OPENCV_IO_ENABLE_OPENEXR=1` before launch.
+
+Why does that matter? Classic outputs 8-bit SDR MP4, which is fine for a quick review but limiting the moment a shot needs to go into Nuke or Resolve for proper comp work. EXR sequences in linear HDR with a LogC3 encoding give you something you can actually grade and key against, the way you would with footage off an ARRI. Right now LTX-2.3 via the HDR LoRA is the only verified open-source video model with a documented EXR output path for VFX integration. That's not a small thing. If the HDR path holds quality, Local isn't just cost parity with Classic — it's producing a format Classic can't match without a pipeline rebuild.
+
+The caveat, stated clearly: EXR output is via the HDR LoRA, not the base model. Whether the LoRA shifts the visual style or introduces quality degradation relative to the base model is completely untested. That's open question number one for the first run.
+
+Open question number two, and honestly the harder one: can LTX-2.3 preserve camera motion from a Unreal reference video as well as Kling o1 does? F1 on the Classic fork confirmed Kling holds composition across both tested scenes. LTX-Video's entire value to this programme depends on it doing the same — or being close enough. We don't know yet. That's what the first cross-fork comparison will measure.
+
+The pipeline is designed to make that iteration cheap. Everything cached at each stage: `01_unlit.mp4`, `02_first_frame.png`, `03_restyled.png`, `04_upscaled.png`, then `05_final/####.exr` for the EXR sequence plus a `05_preview.mp4` for quick review. If the restyled frame is good but the video is wrong, you re-run video only. Seeds locked at 42 on every stage that supports them. The architecture is built around the assumption that you'll be iterating on individual stages, not re-running the whole pipeline every time.
+
+First planned test: `LC_SPACESHIP_UT_ZIMG_SUPIR_LTXHDR_P001_v01`. Same Spaceship scene Classic ran first. Direct comparison once both have results.
+</script>
+
+<script type="text/markdown" id="post-05">
+So far the programme has three forks running in parallel, one seam-clean stitched shot in the can, and two forks that haven't completed a first run yet. Worth being honest about what that adds up to and what it doesn't.
+
+The unifying question across all three forks is the same: where does the compute live, and who pays for it? Not "which fork is best." They're not competing — they're measuring three different points on the same axis.
+
+Classic says: let the cloud take it. Best models, best quality, fastest iteration, someone else's GPU. You pay per shot. The ceiling is high. The dependency is total.
+
+Hybrid says: let someone else's cloud take it, but through a layer that's already solved the provider-integration friction. If Robin's infrastructure is cheaper and the quality holds, the abstraction is worth it. We don't know yet because Hybrid hasn't run. That's not a design failure — that's just where the programme is right now.
+
+Local says: own it. Open weights, your own GPU, zero per-shot cost forever. The trade is that open-source video models are weaker today on the thing that matters most. Not weaker on every axis — LTX-2.3's EXR output path is actually something Classic can't match. But on camera preservation, which is the whole point of using Unreal as the source, open-source hasn't been verified yet. That's the measurement. When the gap closes, Local stops being a bet and becomes the answer.
+
+Every test on every fork carries the same five fields: `camera_match_score`, `photoreal_score`, `stability_score`, `cost_usd`, `wall_time_s`. That's how you compare honestly across forks without re-running everything from scratch. Same scenes, same questions, same units. When a new model lands, you slot it in, re-run, compare against your own prior outputs.
+
+What's proven so far is that the core architecture works. Unreal handles composition, AI handles photoreal, and chunked stitching handles duration. Across two scenes and six tests we landed one seam-clean six-second output, and F1 (the handoff itself) is the load-bearing finding everything else sits on top of.
+
+What isn't proven yet: whether open-source models can match Kling on camera preservation. Whether Hybrid's abstraction layer buys anything on cost or latency. Whether Classic's chunked stitching recipe transfers to LTX-Video's V2V interface, or whether open-source models need a different seam strategy. Whether the HDR LoRA degrades LTX-2.3's visual style in a way that matters.
+
+Those are honest open questions, not rhetorical ones. The programme exists to answer them.
+
+The other thing worth saying: the specific models don't matter as much as the design. Every fork treats the model as a config value, not a baked-in node. When a better open-source video model ships — and the cadence on that is measured in months right now — Local inherits it with a one-line change and a new test. Classic updates its workflow JSON. Hybrid depends on Robin's model availability. The architecture is designed so model improvement is free.
+
+That's the actual bet. Not that any specific tool stack is right. That the separation of responsibilities — Unreal owns the frame, AI fills it in — is the right structure. And that designing the pipeline so models are swappable is how you build something that doesn't age badly.
+
+Next up: first Local run, cross-fork camera comparison, and the Hybrid auth problem solved. After that, real numbers in the comparison table instead of a lot of nulls.
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script>
+(function () {
+  const meta = JSON.parse(document.getElementById('posts-meta').textContent);
+  const stack = document.getElementById('post-stack');
+  const tocList = document.getElementById('toc-list');
+  stack.innerHTML = '';
+  marked.setOptions({ gfm: true, breaks: false });
+
+  meta.forEach(p => {
+    const md = document.getElementById('post-' + p.slug).textContent;
+    const card = document.createElement('article');
+    card.className = 'post-card';
+    card.id = 'post-' + p.slug;
+
+    const eyebrow = document.createElement('div');
+    eyebrow.className = 'post-eyebrow';
+    eyebrow.textContent = p.eyebrow;
+    card.appendChild(eyebrow);
+
+    const title = document.createElement('h2');
+    title.className = 'post-title';
+    title.textContent = p.title;
+    card.appendChild(title);
+
+    const metaLine = document.createElement('div');
+    metaLine.className = 'post-meta';
+    metaLine.textContent = p.meta;
+    card.appendChild(metaLine);
+
+    const body = document.createElement('div');
+    body.className = 'post-body';
+    const inner = document.createElement('article');
+    inner.innerHTML = marked.parse(md);
+    body.appendChild(inner);
+    card.appendChild(body);
+
+    stack.appendChild(card);
+
+    // TOC entry
+    const li = document.createElement('li');
+    const a = document.createElement('a');
+    a.href = '#post-' + p.slug;
+    a.textContent = p.title;
+    li.appendChild(a);
+    tocList.appendChild(li);
+  });
+
+  // Wrap any tables for horizontal scroll
+  document.querySelectorAll('.post-body article table').forEach(t => {
+    const wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+
+  // Active section tracking
+  const links = tocList.querySelectorAll('a');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const active = tocList.querySelector('a[href="#' + entry.target.id + '"]');
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-80px 0px -70% 0px' });
+  document.querySelectorAll('.post-card').forEach(c => observer.observe(c));
+})();
+</script>
+
+</body>
+</html>
