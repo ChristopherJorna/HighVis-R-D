@@ -9,7 +9,9 @@
     // { slug: 'blog',    href: 'highvis-blog.html',    label: 'VFX Blog' },
     // { slug: 'social',  href: 'highvis-social.html',  label: 'Social Posts' },
     // { slug: 'scripts', href: 'highvis-scripts.html', label: 'Video Scripts' },
-    { slug: 'board',   href: 'board.html',           label: 'Test Board' },
+    { slug: 'board',       href: 'board.html',       label: 'Test Board' },
+    { slug: 'comparisons', href: 'comparisons.html', label: 'Test Results' },
+    { slug: 'pipeline',    href: 'pipeline.html',    label: 'Pipeline' },
   ];
 
   const active = document.body.getAttribute('data-page') || '';
@@ -21,7 +23,7 @@
   inner.className = 'topbar-inner';
 
   const brand = document.createElement('a');
-  brand.href = 'highvis.html';
+  brand.href = 'index.html';
   brand.className = 'brand';
   brand.innerHTML = '<span class="brand-dot"></span><span>HighVis R&amp;D</span>';
 
