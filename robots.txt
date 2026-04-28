@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /highvis-blog.html
+Disallow: /highvis-social.html
+Disallow: /highvis-scripts.html

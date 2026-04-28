@@ -2,7 +2,7 @@
    Each page sets <body data-page="..."> matching the slug below. */
 (function () {
   const PAGES = [
-    { slug: 'hub',     href: 'highvis.html',         label: 'Hub' },
+    { slug: 'hub',     href: 'index.html',           label: 'Hub' },
     { slug: 'summary', href: 'highvis-summary.html', label: 'Exec Summary' },
     { slug: 'log',     href: 'research-log.html',    label: 'Research Log' },
     // Hidden pending QC:
