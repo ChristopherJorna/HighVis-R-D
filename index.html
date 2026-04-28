@@ -3,474 +3,279 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HighVis R&D — Fivefold</title>
+<title>HighVis R&amp;D — Programme Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="highvis-shared.css">
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-:root { --orange: #c4622d; }
-
-body {
-  background: #0a0a0a; color: #e0e0e0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  overflow-x: hidden;
-}
-
-/* ── Nav ── */
-nav {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 28px;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, transparent 100%);
-}
-.nav-brand { display: flex; align-items: center; gap: 12px; }
-.nav-brand img { height: 80px; }
-.nav-brand span { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #fff; }
-.nav-links { display: flex; gap: 6px; }
-.nav-link {
-  font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
-  color: #888; text-decoration: none; padding: 6px 14px;
-  border: 1px solid #333; border-radius: 4px; transition: all 0.15s;
-}
-.nav-link:hover { color: #fff; border-color: #555; }
-.nav-link.active { color: var(--orange); border-color: var(--orange); }
-
-/* ── Video wrap ── */
-.vc-section { position: relative; width: 100%; }
-.vc-wrap {
-  position: relative; width: 100%; aspect-ratio: 16/9;
-  overflow: hidden; cursor: col-resize;
-  background: #000; user-select: none; -webkit-user-select: none;
-}
-.vc-right, .vc-left {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  object-fit: cover; display: block; pointer-events: none;
-}
-.vc-left { clip-path: inset(0 50% 0 0); z-index: 1; }
-
-.vc-divider {
-  position: absolute; top: 0; bottom: 0; left: 50%;
-  width: 2px; background: rgba(255,255,255,0.8);
-  transform: translateX(-50%); pointer-events: none; z-index: 3;
-}
-.vc-handle {
-  position: absolute; top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  width: 42px; height: 42px; border-radius: 50%;
-  background: rgba(255,255,255,0.15); backdrop-filter: blur(4px);
-  border: 2px solid rgba(255,255,255,0.7);
-  display: flex; align-items: center; justify-content: center;
-  pointer-events: none; z-index: 3;
-}
-.vc-handle svg { width: 18px; height: 18px; fill: #fff; }
-
-.vc-label-zone { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
-.vc-label {
-  position: absolute; bottom: 20px;
-  font-size: 11px; font-weight: 700; letter-spacing: 0.14em;
-  text-transform: uppercase; background: rgba(0,0,0,0.55);
-  backdrop-filter: blur(4px); padding: 5px 12px; border-radius: 3px;
-  transition: color 0.2s; white-space: nowrap;
-}
-.vc-label-left  { left: 20px; }
-.vc-label-right { right: 20px; }
-
-/* ── Hero ── */
-.hero-overlay {
-  position: absolute; top: 0; left: 0; right: 0;
-  padding: 90px 28px 0; pointer-events: none; z-index: 10;
-}
-.hero-overlay h1 {
-  font-size: clamp(22px, 3.5vw, 48px); font-weight: 700; color: #fff;
-  letter-spacing: -0.02em; line-height: 1.1;
-  text-shadow: 0 2px 20px rgba(0,0,0,0.6);
-}
-.hero-overlay p {
-  font-size: 12px; color: rgba(255,255,255,0.5);
-  margin-top: 6px; letter-spacing: 0.06em; text-transform: uppercase;
-}
-.scroll-hint {
-  position: absolute; bottom: 20px; left: 50%;
-  transform: translateX(-50%);
-  display: flex; flex-direction: column; align-items: center; gap: 6px;
-  color: rgba(255,255,255,0.4); font-size: 10px;
-  letter-spacing: 0.1em; text-transform: uppercase;
-  pointer-events: none; animation: bounce 2s ease-in-out infinite;
-}
-.scroll-hint svg { width: 16px; height: 16px; fill: currentColor; }
-@keyframes bounce {
-  0%, 100% { transform: translateX(-50%) translateY(0); }
-  50%       { transform: translateX(-50%) translateY(6px); }
-}
-
-/* ── Info bar — 3-column: left select | center info | right select ── */
-.vc-info {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 16px;
-  padding: 14px 20px;
-  background: #111; border-bottom: 1px solid #1a1a1a;
-}
-.vc-info-center {
-  display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center;
-}
-.vc-scene { font-size: 10px; color: #444; text-transform: uppercase; letter-spacing: 0.1em; }
-.vc-subtitle { font-size: 11px; color: #444; letter-spacing: 0.03em; }
-.vc-tags { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
-.vc-tag {
-  font-size: 10px; padding: 2px 8px; border-radius: 3px;
-  border: 1px solid #2a2a2a; color: #555;
-  text-transform: uppercase; letter-spacing: 0.08em;
-}
-.prompt-btn {
-  background: none; border: 1px solid #2a2a2a; color: #555;
-  font-family: inherit; font-size: 10px; text-transform: uppercase;
-  letter-spacing: 0.1em; padding: 3px 10px; border-radius: 3px;
-  cursor: pointer; transition: all 0.15s;
-}
-.prompt-btn:hover { color: #ccc; border-color: #555; }
-.prompt-btn.open  { color: var(--orange); border-color: var(--orange); }
-
-/* ── Select groups ── */
-.select-group { display: flex; flex-direction: column; gap: 5px; }
-.select-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #444; }
-.model-select {
-  background: #1a1a1a; border: 2px solid var(--orange);
-  color: #fff; font-size: 13px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.08em;
-  padding: 6px 12px; border-radius: 4px; cursor: pointer;
-  outline: none; font-family: inherit;
-}
-.model-select:hover { background: #222; }
-.model-select option { background: #1a1a1a; color: #fff; }
-.model-select.single { border-color: #2a2a2a; color: #666; pointer-events: none; }
-
-/* ── Prompt panel ── */
-.prompt-panel {
-  display: none; background: #0d0d0d;
-  border-bottom: 1px solid #1a1a1a;
-  padding: 20px 24px;
-}
-.prompt-panel.open { display: block; }
-.prompt-block { margin-bottom: 20px; }
-.prompt-block:last-child { margin-bottom: 0; }
-.prompt-block h4 {
-  font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em;
-  color: var(--orange); margin-bottom: 10px;
-}
-.prompt-block pre {
-  font-family: "SFMono-Regular", Consolas, monospace;
-  font-size: 11px; line-height: 1.7; color: #666;
-  white-space: pre-wrap; word-break: break-word;
-}
-
-/* ── Mobile ── */
-@media (max-width: 640px) {
-  nav { padding: 10px 14px; }
-  .nav-brand img { height: 44px; }
-  .nav-brand span { display: none; }
-  .nav-link { padding: 5px 10px; font-size: 10px; letter-spacing: 0.06em; }
-
-  .vc-info {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
-    padding: 12px 14px; gap: 12px;
-  }
-  .vc-info-center { align-items: flex-start; text-align: left; }
-  .vc-tags { justify-content: flex-start; }
-  .model-select { font-size: 11px; padding: 5px 10px; }
-  .vc-label { font-size: 9px; padding: 3px 8px; bottom: 10px; }
-  .vc-label-left  { left: 10px; }
-  .vc-label-right { right: 10px; }
-  .vc-handle { width: 48px; height: 48px; }
-  .hero-overlay { display: none; }
-  .prompt-panel { padding: 14px 16px; }
-}
+  .forks-track { margin: 32px 0 40px; padding: 28px 24px 24px; border: 1px solid rgba(26,26,26,0.08); border-radius: 8px; background: #fff; }
+  .forks-track-header { margin-bottom: 12px; }
+  .forks-track-title { font-family: 'Source Serif 4', serif; font-size: 22px; font-weight: 600; color: #1a1a1a; }
+  .forks-track-sub { font-family: 'Inter', sans-serif; font-size: 13px; color: #555; margin-top: 4px; }
+  .forks-track-svg { display: block; width: 100%; height: auto; max-width: 900px; margin: 8px auto 0; }
+  .decisions { margin: 8px 0 40px; padding: 24px 24px 18px; border: 1px solid rgba(26,26,26,0.08); border-radius: 8px; background: #fff; }
+  .decisions-title { font-family: 'Source Serif 4', serif; font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
+  .decisions-sub { font-family: 'Inter', sans-serif; font-size: 13px; color: #555; margin-bottom: 16px; }
+  .decisions-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
+  .decision { padding: 14px 16px; border-left: 3px solid #1a1a1a; background: rgba(26,26,26,0.025); border-radius: 0 6px 6px 0; }
+  .decision-tag { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: #888; margin-bottom: 6px; }
+  .decision-head { font-family: 'Source Serif 4', serif; font-size: 15px; font-weight: 600; color: #1a1a1a; margin-bottom: 6px; }
+  .decision-body { font-family: 'Inter', sans-serif; font-size: 13px; line-height: 1.5; color: #333; }
+  .decision-body code { font-family: 'JetBrains Mono', monospace; font-size: 12px; background: rgba(26,26,26,0.06); padding: 1px 4px; border-radius: 3px; }
 </style>
 </head>
-<body>
+<body data-page="hub">
 
-<nav>
-  <div class="nav-brand">
-    <img src="assets/fivefold-logo-transparent.png" alt="Fivefold">
-    <span>HighVis R&D</span>
-  </div>
-  <div class="nav-links">
-    <a href="index.html" class="nav-link active">Comparisons</a>
-    <a href="images.html" class="nav-link">Images</a>
-    <a href="pipeline.html" class="nav-link">Pipeline</a>
-    <a href="writeup.html" class="nav-link">Summary</a>
-  </div>
-</nav>
-
-<div id="sections"></div>
-
-<script>
-const SCENES = [
-  {
-    key:      "SPACESHIP",
-    title:    "Spaceship",
-    subtitle: "Untextured Unreal → NB imggen → Magnific → Video",
-    tags:     ["UT Pass", "NB", "Magnific", "P001"],
-    left: [
-      { label: "Unlit Render", src: "scenes/SPACESHIP/unlit.mp4" },
-      { label: "Lit Render",   src: "scenes/SPACESHIP/lit.mp4"   },
-    ],
-    right: [
-      { label: "Kling o1",    src: "scenes/SPACESHIP/tests/SPACESHIP_UT_NB_KL_P001_v01/video_output.mp4" },
-      { label: "Luma Modify", src: "scenes/SPACESHIP/tests/SPACESHIP_UT_NB_LM_P001_v01/video_output.mp4" },
-      { label: "Wan 2.7",     src: "scenes/SPACESHIP/tests/SPACESHIP_UT_NB_WN_P001_v01/video_output.mp4" },
-    ],
-    prompts: [
-      { label: "P001 — Image Gen", file: "prompts/P001.md" },
-      { label: "P002 — Video Gen", file: "prompts/P002.md" },
-    ],
-    showScrollHint: true,
-  },
-  {
-    key:      "CITYSCAPE",
-    title:    "Cityscape — Riyadh",
-    subtitle: "Depth Map → FL imggen → NB edit → Magnific → Video",
-    tags:     ["DP Pass", "FL + NB", "Magnific", "P003"],
-    left: [
-      { label: "Depth Map", src: "scenes/CITYSCAPE/depth.mp4" },
-    ],
-    right: [
-      { label: "Kling o1",    src: "scenes/CITYSCAPE/tests/CITYSCAPE_DP_FL_KL_P003_v01/video_output.mp4" },
-      { label: "Luma Modify", src: "scenes/CITYSCAPE/tests/CITYSCAPE_DP_FL_LM_P003_v01/video_output.mp4" },
-      { label: "Wan 2.7",     src: "scenes/CITYSCAPE/tests/CITYSCAPE_DP_FL_WN_P003_v01/video_output.mp4" },
-    ],
-    prompts: [
-      { label: "P003 — Image Gen", file: "prompts/P003.md" },
-      { label: "P006 — Video Gen", file: "prompts/P006.md" },
-    ],
-    showScrollHint: false,
-  },
-];
-
-const container = document.getElementById("sections");
-SCENES.forEach((cfg, idx) => buildScene(cfg, idx, container));
-
-// iOS Safari autoplay unlock — first touch plays all videos
-document.addEventListener("touchstart", function unlock() {
-  document.querySelectorAll("video").forEach(v => v.play().catch(() => {}));
-  document.removeEventListener("touchstart", unlock);
-}, { once: true });
-
-function buildScene(cfg, idx, container) {
-  const leftOpts  = cfg.left.map((o, i)  => `<option value="${i}">${o.label}</option>`).join("");
-  const rightOpts = cfg.right.map((o, i) => `<option value="${i}">${o.label}</option>`).join("");
-  const leftSingle  = cfg.left.length  === 1;
-  const rightSingle = cfg.right.length === 1;
-
-  const section = document.createElement("div");
-  section.className = "vc-section";
-  section.id = `scene-${cfg.key}`;
-
-  section.innerHTML = `
-    <div class="vc-wrap" id="vc-${idx}">
-      <video class="vc-right" id="vr-${idx}" src="${cfg.right[0].src}" autoplay muted loop playsinline></video>
-      <video class="vc-left"  id="vl-${idx}" src="${cfg.left[0].src}"  autoplay muted loop playsinline></video>
-      <div class="vc-divider" id="vd-${idx}"></div>
-      <div class="vc-handle"  id="vh-${idx}">
-        <svg viewBox="0 0 24 24"><path d="M8 5l-7 7 7 7V5zm8 0v14l7-7-7-7z"/></svg>
+<div class="layout layout--single">
+  <main>
+    <section class="hero hero--wide">
+      <div class="eyebrow">HighVis R&amp;D · Programme Hub · 2026-04-28</div>
+      <h1 class="title">Direct the shot in Unreal. Let AI handle the photoreal.</h1>
+      <p class="subtitle">HighVis is a tool-agnostic infrastructure for restyling low-fidelity Unreal renders into photoreal video, while preserving camera, composition, and motion. We're building it three ways in parallel. Each one is a fork: same architecture, different model stack, different infrastructure trade-off. We then compare the forks on the same scenes with the same questions, so the answer still holds when the models change.</p>
+      <div class="meta-grid">
+        <div class="meta-item"><div class="meta-label">Owners</div><div class="meta-value">Christopher Jorna · Fivefold</div></div>
+        <div class="meta-item"><div class="meta-label">Audience</div><div class="meta-value">CoSTAR · Innovate UK · Media Cymru</div></div>
+        <div class="meta-item"><div class="meta-label">Forks</div><div class="meta-value">Classic · Hybrid · Local</div></div>
+        <div class="meta-item"><div class="meta-label">Status</div><div class="meta-value">Active · build phase</div></div>
       </div>
-      <div class="vc-label-zone" id="ll-${idx}">
-        <span class="vc-label vc-label-left" id="lbl-l-${idx}">${cfg.left[0].label}</span>
-      </div>
-      <div class="vc-label-zone" id="lr-${idx}">
-        <span class="vc-label vc-label-right" id="lbl-r-${idx}">${cfg.right[0].label}</span>
-      </div>
-      <div class="hero-overlay">
-        <h1>${cfg.title}</h1>
-        <p>${cfg.subtitle}</p>
-      </div>
-      ${cfg.showScrollHint ? `
-      <div class="scroll-hint">
-        <svg viewBox="0 0 24 24"><path d="M12 16l-6-6h12z"/></svg>
-        scroll
-      </div>` : ""}
-    </div>
+    </section>
 
-    <div class="vc-info">
-      <!-- Left dropdown -->
-      <div class="select-group">
-        <span class="select-label">Left side</span>
-        <select id="sel-l-${idx}" class="model-select${leftSingle ? " single" : ""}"
-                ${leftSingle ? "disabled" : ""}>${leftOpts}</select>
+    <section class="forks-track" aria-label="Three forks, one race">
+      <div class="forks-track-header">
+        <div class="forks-track-title">Three teams. Same race. Different way of building the car.</div>
+        <div class="forks-track-sub">Same architecture in every fork. Each team trades different things to get to the finish line.</div>
       </div>
+      <svg class="forks-track-svg" viewBox="0 0 900 320" role="img" aria-label="Three race teams">
+        <defs>
+          <linearGradient id="lane-bg" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" stop-color="#1a1a1a" stop-opacity="0.04"/>
+            <stop offset="1" stop-color="#1a1a1a" stop-opacity="0.0"/>
+          </linearGradient>
+        </defs>
+        <!-- Lane backgrounds -->
+        <rect x="0" y="50" width="900" height="240" fill="url(#lane-bg)"/>
+        <line x1="300" y1="50" x2="300" y2="290" stroke="#1a1a1a" stroke-opacity="0.08" stroke-dasharray="4 6"/>
+        <line x1="600" y1="50" x2="600" y2="290" stroke="#1a1a1a" stroke-opacity="0.08" stroke-dasharray="4 6"/>
 
-      <!-- Center: scene info + prompt toggle -->
-      <div class="vc-info-center">
-        <span class="vc-scene">${cfg.key}</span>
-        <div class="vc-tags">
-          ${cfg.tags.map(t => `<span class="vc-tag">${t}</span>`).join("")}
+        <!-- ===== CLASSIC (red) — closed pay-to-win pod, tinted canopy, $$$ livery ===== -->
+        <g transform="translate(150, 170)">
+          <!-- Speed lines behind, fast and expensive -->
+          <g opacity="0.35" stroke="#d23c3c" stroke-width="2" stroke-linecap="round">
+            <line x1="-105" y1="-8" x2="-78" y2="-8"/>
+            <line x1="-115" y1="2" x2="-85" y2="2"/>
+            <line x1="-105" y1="12" x2="-80" y2="12"/>
+          </g>
+          <!-- Sleek pod, low-slung supercar silhouette -->
+          <path d="M -78 4 L -60 -10 L -20 -22 L 38 -22 L 62 -8 L 78 4 L 70 14 L -72 14 Z" fill="#d23c3c"/>
+          <!-- TINTED canopy (dark = closed, secret, no driver visible) -->
+          <path d="M -18 -22 L 36 -22 L 50 -8 L -8 -8 Z" fill="#1a1a1a"/>
+          <!-- Reflective glint on canopy -->
+          <path d="M 0 -20 L 18 -20 L 24 -12 L 6 -12 Z" fill="#3a3a3a" opacity="0.7"/>
+          <!-- $ on body livery -->
+          <text x="-32" y="6" font-family="Inter,sans-serif" font-weight="700" font-size="13" fill="#fff7eb">$</text>
+          <text x="-18" y="6" font-family="Inter,sans-serif" font-weight="700" font-size="13" fill="#fff7eb">$</text>
+          <text x="-4" y="6" font-family="Inter,sans-serif" font-weight="700" font-size="13" fill="#fff7eb">$</text>
+          <!-- Wheels -->
+          <circle cx="-50" cy="16" r="11" fill="#1a1a1a"/>
+          <circle cx="-50" cy="16" r="4" fill="#888"/>
+          <circle cx="55" cy="16" r="11" fill="#1a1a1a"/>
+          <circle cx="55" cy="16" r="4" fill="#888"/>
+          <!-- Labels -->
+          <text x="0" y="58" text-anchor="middle" font-family="Inter,sans-serif" font-weight="700" font-size="16" fill="#d23c3c">CLASSIC</text>
+          <text x="0" y="78" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#1a1a1a" opacity="0.75">Pay-to-win. Closed system.</text>
+          <text x="0" y="94" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#1a1a1a" opacity="0.75">Cloud GPU. Best models money buys.</text>
+          <text x="0" y="110" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#1a1a1a" opacity="0.75">~$1/shot.</text>
+        </g>
+
+        <!-- ===== HYBRID (yellow) — same closed pod, friend's pit-crew handing parts ===== -->
+        <g transform="translate(450, 170)">
+          <!-- Pit-crew pixel mechanics, two of them, on the left -->
+          <g transform="translate(-100, -2)" shape-rendering="crispEdges">
+            <!-- crew 1 -->
+            <rect x="-4" y="-22" width="8" height="6" fill="#f4f4f4"/>
+            <rect x="-5" y="-16" width="10" height="14" fill="#e0a814"/>
+            <rect x="-5" y="-2" width="4" height="8" fill="#1a1a1a"/>
+            <rect x="1" y="-2" width="4" height="8" fill="#1a1a1a"/>
+            <!-- arm extending -->
+            <rect x="5" y="-12" width="10" height="3" fill="#f4f4f4"/>
+          </g>
+          <g transform="translate(-82, 2)" shape-rendering="crispEdges">
+            <!-- crew 2 -->
+            <rect x="-4" y="-22" width="8" height="6" fill="#f4f4f4"/>
+            <rect x="-5" y="-16" width="10" height="14" fill="#e0a814"/>
+            <rect x="-5" y="-2" width="4" height="8" fill="#1a1a1a"/>
+            <rect x="1" y="-2" width="4" height="8" fill="#1a1a1a"/>
+          </g>
+          <!-- Same sleek pod, yellow livery, tinted canopy (same secret pod, just borrowed) -->
+          <path d="M -68 4 L -50 -10 L -10 -22 L 48 -22 L 72 -8 L 78 4 L 70 14 L -62 14 Z" fill="#e0a814"/>
+          <path d="M -8 -22 L 46 -22 L 60 -8 L 2 -8 Z" fill="#1a1a1a"/>
+          <path d="M 10 -20 L 28 -20 L 34 -12 L 16 -12 Z" fill="#3a3a3a" opacity="0.7"/>
+          <!-- friendly hand-off icon: a small wrench/box being passed in -->
+          <rect x="-58" y="-2" width="14" height="4" fill="#7a5e0c" rx="1"/>
+          <!-- Wheels -->
+          <circle cx="-40" cy="16" r="11" fill="#1a1a1a"/>
+          <circle cx="-40" cy="16" r="4" fill="#888"/>
+          <circle cx="58" cy="16" r="11" fill="#1a1a1a"/>
+          <circle cx="58" cy="16" r="4" fill="#888"/>
+          <text x="0" y="58" text-anchor="middle" font-family="Inter,sans-serif" font-weight="700" font-size="16" fill="#c08c0a">HYBRID</text>
+          <text x="0" y="78" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#1a1a1a" opacity="0.75">Same closed pod, borrowed.</text>
+          <text x="0" y="94" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#1a1a1a" opacity="0.75">Friend's pit crew handles auth,</text>
+          <text x="0" y="110" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#1a1a1a" opacity="0.75">routing, billing.</text>
+        </g>
+
+        <!-- ===== LOCAL (green) — open chassis, hood up, engine visible, mechanics in the bay ===== -->
+        <g transform="translate(750, 170)">
+          <!-- Mechanic 1 (pixel art) leaning into engine bay -->
+          <g transform="translate(-78, -2)" shape-rendering="crispEdges">
+            <rect x="-4" y="-22" width="8" height="6" fill="#f4f4f4"/>
+            <rect x="-5" y="-16" width="10" height="14" fill="#2c8a4f"/>
+            <rect x="-5" y="-2" width="4" height="8" fill="#1a1a1a"/>
+            <rect x="1" y="-2" width="4" height="8" fill="#1a1a1a"/>
+            <!-- wrench in hand -->
+            <rect x="5" y="-12" width="2" height="8" fill="#888"/>
+            <rect x="3" y="-13" width="6" height="3" fill="#888"/>
+          </g>
+          <!-- Mechanic 2 perched on the front, head down in engine -->
+          <g transform="translate(-30, -16)" shape-rendering="crispEdges">
+            <rect x="-3" y="0" width="7" height="5" fill="#f4f4f4"/>
+            <rect x="-4" y="5" width="9" height="11" fill="#2c8a4f"/>
+          </g>
+          <!-- Open hood propped up over the front -->
+          <line x1="-50" y1="-4" x2="-32" y2="-30" stroke="#2c8a4f" stroke-width="3" stroke-linecap="round"/>
+          <line x1="-12" y1="-4" x2="-32" y2="-30" stroke="#2c8a4f" stroke-width="3" stroke-linecap="round"/>
+          <path d="M -52 -32 L -12 -32 L -8 -28 L -56 -28 Z" fill="#2c8a4f" opacity="0.85"/>
+          <!-- Rear cabin (closed body half) -->
+          <path d="M -10 -8 L 0 -22 L 50 -22 L 65 -8 L 78 4 L 70 14 L 0 14 L -10 4 Z" fill="#2c8a4f"/>
+          <!-- Visible bolts on rear cabin -->
+          <circle cx="20" cy="-2" r="1.5" fill="#1c5a35"/>
+          <circle cx="40" cy="-2" r="1.5" fill="#1c5a35"/>
+          <circle cx="60" cy="2" r="1.5" fill="#1c5a35"/>
+          <!-- Cabin window (clear, you can see in) -->
+          <path d="M 4 -20 L 46 -20 L 56 -10 L 0 -10 Z" fill="#a8d8b8" opacity="0.6"/>
+          <!-- Open engine bay frame (no body panel — chassis only) -->
+          <line x1="-50" y1="-4" x2="-50" y2="14" stroke="#2c8a4f" stroke-width="2"/>
+          <line x1="-50" y1="14" x2="-10" y2="14" stroke="#2c8a4f" stroke-width="2"/>
+          <line x1="-50" y1="-4" x2="-10" y2="-4" stroke="#2c8a4f" stroke-width="2"/>
+          <!-- Engine block visible in the bay -->
+          <rect x="-46" y="0" width="32" height="12" fill="#1c5a35"/>
+          <!-- Pistons / cylinders sticking up -->
+          <rect x="-42" y="-8" width="5" height="8" fill="#888"/>
+          <rect x="-34" y="-10" width="5" height="10" fill="#888"/>
+          <rect x="-26" y="-8" width="5" height="8" fill="#888"/>
+          <rect x="-18" y="-10" width="5" height="10" fill="#888"/>
+          <!-- Spark wires -->
+          <path d="M -40 -8 Q -36 -14 -30 -10" fill="none" stroke="#d23c3c" stroke-width="1"/>
+          <path d="M -32 -10 Q -28 -16 -22 -10" fill="none" stroke="#d23c3c" stroke-width="1"/>
+          <!-- Wheels -->
+          <circle cx="-38" cy="16" r="11" fill="#1a1a1a"/>
+          <circle cx="-38" cy="16" r="4" fill="#888"/>
+          <circle cx="58" cy="16" r="11" fill="#1a1a1a"/>
+          <circle cx="58" cy="16" r="4" fill="#888"/>
+          <text x="0" y="58" text-anchor="middle" font-family="Inter,sans-serif" font-weight="700" font-size="16" fill="#2c8a4f">LOCAL</text>
+          <text x="0" y="78" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#1a1a1a" opacity="0.75">Open build. Hood up, engine</text>
+          <text x="0" y="94" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#1a1a1a" opacity="0.75">visible. Mechanics in the bay.</text>
+          <text x="0" y="110" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#1a1a1a" opacity="0.75">Owned compute. $0/shot.</text>
+        </g>
+
+        <!-- Finish line marker -->
+        <g transform="translate(870, 70)">
+          <text x="0" y="0" font-family="Inter,sans-serif" font-size="9" fill="#1a1a1a" opacity="0.55" text-anchor="end">SAME RACE</text>
+        </g>
+      </svg>
+    </section>
+
+    <section class="decisions" aria-label="Notable build decisions">
+      <div class="decisions-title">Notable build decisions (this week)</div>
+      <div class="decisions-sub">Small architectural calls that shape the rest of the build. Documented here so the reasoning sticks.</div>
+      <div class="decisions-grid">
+        <div class="decision">
+          <div class="decision-tag">Local · workflow shape</div>
+          <div class="decision-head">Preview / Final toggle on every run</div>
+          <div class="decision-body">Stage 1 always renders a forced-720p preview MP4 (~30-45s). A <code>run_final</code> toggle gates Stage 2: ON adds the source-resolution MP4 plus the 16-bit EXR sequence; OFF stops after preview. MP4 saves before EXR inside each stage so a bad preview is killable before the EXR write. Implemented via <code>ImpactSwitch</code> on the latent feeding the final sampler — no input means ComfyUI skips the entire downstream chain.</div>
         </div>
-        <button class="prompt-btn" id="pbtn-${idx}">Prompt ▾</button>
+        <div class="decision">
+          <div class="decision-tag">Local · reproducibility</div>
+          <div class="decision-head">Frame rate + count auto-extracted from source</div>
+          <div class="decision-body">Output fps and frame count come from <code>GetVideoComponents.frame_rate</code> on the input clip — single source of truth wired to <code>SaveVideo</code>, EXR writer, and <code>EmptyLTXVLatentVideo</code>. Two override toggles (<code>use_manual_fps</code>, <code>use_manual_frames</code>) expose manual widgets when needed. Frame count snaps to LTX-valid <code>8N+1</code> via <code>SimpleMath+</code>. Means a 30 fps source comes out at 30 fps without anyone touching a number.</div>
+        </div>
+        <div class="decision">
+          <div class="decision-tag">Local · GPU access</div>
+          <div class="decision-head">RunPod mounted as a local drive</div>
+          <div class="decision-body">Cloud GPU treated as <code>Z:\</code> via <code>rclone + WinFsp</code> SFTP mount of the pod's <code>/workspace</code>. Compute jobs go through <code>ssh runpod "..."</code>. Keeps this Claude session, its memory, and its agents in place — the pod is just disk + GPU. Network Volume is the persistence layer (survives pod stop/destroy). Eleven-step bootstrap checklist lives at <code>state/handover-runpod-highvis-local.md</code>.</div>
+        </div>
       </div>
+    </section>
 
-      <!-- Right dropdown -->
-      <div class="select-group">
-        <span class="select-label">Right side</span>
-        <select id="sel-r-${idx}" class="model-select${rightSingle ? " single" : ""}"
-                ${rightSingle ? "disabled" : ""}>${rightOpts}</select>
-      </div>
+    <section class="hub-grid">
+      <a class="hub-card" href="highvis-summary.html">
+        <div class="card-eyebrow">01 · For decision-makers</div>
+        <div class="card-title">Exec Summary</div>
+        <div class="card-body">A short, fact-locked digest of the programme: what HighVis is, where each fork sits, what's been measured, what's still open.</div>
+        <div class="card-meta">~3 min read<span class="arrow">→</span></div>
+      </a>
+
+      <a class="hub-card" href="research-log.html">
+        <div class="card-eyebrow">02 · For researchers</div>
+        <div class="card-title">Living Research Log</div>
+        <div class="card-body">The formal academic record. Eleven sections, every claim traced back to a canonical source. Updated as findings land.</div>
+        <div class="card-meta">~25 min read<span class="arrow">→</span></div>
+      </a>
+
+      <!-- Hidden pending QC: blog, social, scripts
+      <a class="hub-card" href="highvis-blog.html">
+        <div class="card-eyebrow">03 · For VFX practitioners</div>
+        <div class="card-title">VFX Blog Series</div>
+        <div class="card-body">Five posts in CJ's voice, walking through the build: why three forks, where Classic hit its ceiling, why Local exists, what's actually proven yet.</div>
+        <div class="card-meta">Long-form posts · ~5 min each<span class="arrow">→</span></div>
+      </a>
+
+      <a class="hub-card" href="highvis-social.html">
+        <div class="card-eyebrow">04 · For LinkedIn / X</div>
+        <div class="card-title">Social Posts</div>
+        <div class="card-body">Long-form LinkedIn versions and short X threads — with image suggestions ready to lift into a post.</div>
+        <div class="card-meta">LinkedIn long-form + X threads<span class="arrow">→</span></div>
+      </a>
+
+      <a class="hub-card" href="highvis-scripts.html">
+        <div class="card-eyebrow">05 · For video</div>
+        <div class="card-title">One-Minute Scripts</div>
+        <div class="card-body">Five 60-second video scripts in CJ's spoken-word voice — hook, setup, middle, payoff, CTA. Ready to record.</div>
+        <div class="card-meta">60s scripts · ~150 words each<span class="arrow">→</span></div>
+      </a>
+      -->
+
+      <a class="hub-card" href="board.html">
+        <div class="card-eyebrow">06 · For test data</div>
+        <div class="card-title">Test Board</div>
+        <div class="card-body">Per-test results board pulling from <code>HighVisRnD/board_data.json</code>. Visual cross-fork comparison surface.</div>
+        <div class="card-meta">Live test data<span class="arrow">→</span></div>
+      </a>
+    </section>
+
+    <div class="colophon">
+      <p><strong>Living document.</strong> All pages above pull facts from these canonical sources only:</p>
+      <ul>
+        <li>content/academic/highvis/highvis-status.json</li>
+        <li>content/academic/highvis/forks/classic/findings.md</li>
+        <li>content/academic/highvis/forks/hybrid/findings.md</li>
+        <li>content/academic/highvis/forks/local/findings.md</li>
+        <li>content/academic/highvis/comparisons/</li>
+        <li>content/academic/highvis/2026-04-23-programme-summary.md</li>
+        <li>HighVisRnD/board_data.json</li>
+        <li>content/output/highvis/local/&lt;shot&gt;/&lt;test_id&gt;/metadata.json</li>
+        <li>tools/highvis-classic/README.md</li>
+        <li>tools/highvis-hybrid/README.md</li>
+        <li>tools/highvis-local/README.md</li>
+        <li>tools/highvis-local/configs/</li>
+        <li>state/handover-runpod-highvis-local.md</li>
+      </ul>
+      <p style="margin-top: 16px;">No claim on any page traces outside this list.</p>
     </div>
+  </main>
+</div>
 
-    <!-- Prompt panel -->
-    <div class="prompt-panel" id="ppanel-${idx}">
-      <p style="font-size:11px;color:#555;font-style:italic">Loading prompts...</p>
-    </div>
-  `;
-
-  container.appendChild(section);
-  initSlider(idx, cfg);
-  initPromptToggle(idx, cfg);
-}
-
-// ── Prompt toggle ─────────────────────────────────────────────────────────
-function initPromptToggle(idx, cfg) {
-  const btn   = document.getElementById(`pbtn-${idx}`);
-  const panel = document.getElementById(`ppanel-${idx}`);
-  let loaded  = false;
-
-  btn.addEventListener("click", async () => {
-    const isOpen = panel.classList.toggle("open");
-    btn.classList.toggle("open", isOpen);
-    btn.textContent = isOpen ? "Prompt ▴" : "Prompt ▾";
-
-    if (isOpen && !loaded) {
-      loaded = true;
-      const blocks = await Promise.all(cfg.prompts.map(async p => {
-        try {
-          const r = await fetch(p.file);
-          const text = await r.text();
-          const m = text.match(/```\n([\s\S]*?)```/);
-          const content = m ? m[1].trim() : text.trim();
-          return `<div class="prompt-block"><h4>${p.label}</h4><pre>${escHtml(content)}</pre></div>`;
-        } catch {
-          return `<div class="prompt-block"><h4>${p.label}</h4><pre style="color:#444">Not found</pre></div>`;
-        }
-      }));
-      panel.innerHTML = blocks.join("");
-    }
-  });
-}
-
-function escHtml(s) {
-  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-}
-
-// ── Slider + sync ─────────────────────────────────────────────────────────
-function initSlider(idx, cfg) {
-  const wrap     = document.getElementById(`vc-${idx}`);
-  const leftVid  = document.getElementById(`vl-${idx}`);
-  const rightVid = document.getElementById(`vr-${idx}`);
-  const divider  = document.getElementById(`vd-${idx}`);
-  const handle   = document.getElementById(`vh-${idx}`);
-  const zoneLeft  = document.getElementById(`ll-${idx}`);
-  const zoneRight = document.getElementById(`lr-${idx}`);
-  const lblLeft   = document.getElementById(`lbl-l-${idx}`);
-  const lblRight  = document.getElementById(`lbl-r-${idx}`);
-  const selLeft   = document.getElementById(`sel-l-${idx}`);
-  const selRight  = document.getElementById(`sel-r-${idx}`);
-
-  const ORANGE = "var(--orange)", DIM = "rgba(255,255,255,0.55)";
-
-  function swapVideo(vid, src, cb) {
-    vid.src = src; vid.load();
-    vid.addEventListener("canplay", function once() {
-      vid.removeEventListener("canplay", once); cb();
-    });
-  }
-
-  selLeft && selLeft.addEventListener("change", function () {
-    const opt = cfg.left[+this.value];
-    lblLeft.textContent = opt.label;
-    swapVideo(leftVid, opt.src, () => {
-      leftVid.currentTime = rightVid.currentTime;
-      leftVid.play().catch(() => {});
-    });
-  });
-
-  selRight && selRight.addEventListener("change", function () {
-    const opt = cfg.right[+this.value];
-    lblRight.textContent = opt.label;
-    swapVideo(rightVid, opt.src, () => {
-      rightVid.currentTime = 0; leftVid.currentTime = 0;
-      rightVid.play().catch(() => {}); leftVid.play().catch(() => {});
-    });
-  });
-
-  function syncVideos() {
-    const drift = rightVid.currentTime - leftVid.currentTime;
-    if (Math.abs(drift) > 0.5) {
-      leftVid.currentTime = rightVid.currentTime; leftVid.playbackRate = 1.0;
-    } else if (drift > 0.042) { leftVid.playbackRate = 1.03; }
-    else if (drift < -0.042)  { leftVid.playbackRate = 0.97; }
-    else                      { leftVid.playbackRate = 1.0; }
-  }
-
-  let pos = 50, dragging = false;
-  let autoActive = true, autoResumeTimer = null;
-  let autoPos = 50, autoDir = 1, autoPause = 0;
-
-  function applyPos(p) {
-    pos = Math.max(0, Math.min(100, p));
-    const clipL = `inset(0 ${(100 - pos).toFixed(2)}% 0 0)`;
-    const clipR = `inset(0 0 0 ${pos.toFixed(2)}%)`;
-    leftVid.style.clipPath      = clipL;
-    zoneLeft.style.clipPath     = clipL;
-    zoneRight.style.clipPath    = clipR;
-    lblLeft.style.color  = pos >= 50 ? ORANGE : DIM;
-    lblRight.style.color = pos <  50 ? ORANGE : DIM;
-    divider.style.left = pos + "%";
-    handle.style.left  = pos + "%";
-  }
-
-  function tick() {
-    syncVideos();
-    if (autoActive && !dragging) {
-      if (autoPause > 0) { autoPause--; }
-      else {
-        autoPos += autoDir * 0.12;
-        if (autoPos >= 80) { autoDir = -1; autoPause = 90; }
-        if (autoPos <= 20) { autoDir =  1; autoPause = 90; }
-        applyPos(autoPos);
-      }
-    }
-    requestAnimationFrame(tick);
-  }
-  tick();
-
-  // Kick off play immediately (belt + braces for mobile)
-  [leftVid, rightVid].forEach(v => v.play().catch(() => {}));
-
-  function getPct(e) {
-    const r = wrap.getBoundingClientRect();
-    return ((e.touches ? e.touches[0].clientX : e.clientX) - r.left) / r.width * 100;
-  }
-  function startDrag(e) { dragging = true; autoActive = false; clearTimeout(autoResumeTimer); applyPos(getPct(e)); }
-  function doDrag(e)     { if (dragging) applyPos(getPct(e)); }
-  function stopDrag()    {
-    if (!dragging) return; dragging = false;
-    autoResumeTimer = setTimeout(() => { autoPos = pos; autoActive = true; }, 3000);
-  }
-
-  wrap.addEventListener("mousedown",  startDrag);
-  wrap.addEventListener("touchstart", startDrag, { passive: true });
-  window.addEventListener("mousemove", doDrag);
-  window.addEventListener("touchmove", doDrag, { passive: true });
-  window.addEventListener("mouseup",  stopDrag);
-  window.addEventListener("touchend", stopDrag);
-
-  new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      [leftVid, rightVid].forEach(v => e.isIntersecting ? v.play().catch(()=>{}) : v.pause());
-    });
-  }, { threshold: 0.1 }).observe(wrap);
-
-  applyPos(50);
-}
-</script>
+<script src="highvis-nav.js"></script>
+<script src="highvis-review.js" defer></script>
 </body>
 </html>
