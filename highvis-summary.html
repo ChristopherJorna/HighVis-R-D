@@ -14,7 +14,7 @@
 <div class="layout layout--single">
   <main>
     <section class="hero hero--wide">
-      <div class="eyebrow">Executive Summary · 2026-04-28</div>
+      <div class="eyebrow">Executive Summary · 2026-05-06</div>
       <h1 class="title">HighVis at a glance.</h1>
       <p class="subtitle">A three-fork R&amp;D programme building a render pipeline where Unreal Engine handles composition and AI handles photoreal. Three parallel implementations measure three different points on the infrastructure dependency axis. Same architecture, same scoring rubric, different model stacks.</p>
     </section>
@@ -52,17 +52,17 @@ HighVis is a render pipeline that takes a low-fidelity Unreal Engine output and 
 |------|-----------------|--------|-------------|
 | **Classic** | What is the quality ceiling using the best proprietary tools? | Active · benchmark fork | ~$1.01 (Kling Pro) · ~$1.22 (with Seedance A/B) |
 | **Hybrid** | What does routing through an abstraction layer (Robin's AIVFX) buy in cost / latency / resilience? | Dormant · blocked on auth | TBD — first run pending |
-| **Local** | How much quality do you sacrifice to eliminate per-shot cost and all API dependency? | Active · build phase on RunPod RTX 5090 | $0.00 |
+| **Local** | How much quality do you sacrifice to eliminate per-shot cost and all API dependency? | Active · V2V confirmed, quality tuning (15 iterations) | $0.00 |
 
-## Locked Local stack (2026-04-28)
+## Confirmed Local stack (2026-05-06)
 
 | Stage | Model | Notes |
 |-------|-------|-------|
-| First-frame restyle | `z-image-base` | ControlNet (depth-anything-v2 + canny) for composition preservation |
-| Upscaler | `supir` | Deterministic, GPU-bound, license check pending |
-| Video | `ltx-2.3-22b-hdr` + `IC-LoRA-HDR` | Open weights, 16/32-bit EXR output via `OPENCV_IO_ENABLE_OPENEXR=1` |
+| First-frame restyle | `nano-banana-pro` (Gemini 3 Pro) | Proprietary API — accepted after full open-source evaluation (F-LC-005) |
+| Upscaler | `4x-UltraSharp` (interim) / `supir` (target) | 4x-UltraSharp confirmed working; SUPIR evaluation pending |
+| Video | `ltx-2.3-22b-dev-fp8` + Distilled LoRA (0.7) + `IC-LoRA-HDR` (1.0) | Open weights, V2V confirmed working on RTX 5090 32GB |
 
-The EXR / HDR output path is the differentiator. Classic outputs 8-bit SDR MP4; Local targets linear HDR LogC3 in 16-bit EXR sequences. This is the only currently-verified open-source AI video model with a documented EXR output path for VFX integration.
+The Local fork is no longer fully open-source at the image stage — Nano Banana Pro (proprietary API) is required because no tested open-source image model could reliably texture unlit 3D renders (F-LC-005). The video and upscale stages remain $0/shot. The EXR / HDR output path is the differentiator: Classic outputs 8-bit SDR MP4; Local targets linear HDR LogC3 in 16-bit EXR sequences.
 
 ## What has been proven
 
@@ -72,14 +72,19 @@ The EXR / HDR output path is the differentiator. Classic outputs 8-bit SDR MP4; 
 - **F4 — Structural image edits are unreliable in a single prompt.** Two-pass editing succeeded where single-pass failed.
 - **F5 — Negative style constraints are required, not optional.** "Not CGI, not illustrated, not a video game" was needed alongside style references.
 - **First seam-clean chunked run achieved 2026-04-23.** Two 3-second Kling o1 chunks producing a 6-second seamless output. Test ID `SPACESHIP_UT_NB_KLC_P002_v01`. Five-lever recipe documented.
+- **F-LC-006 — First successful Local fork V2V output (2026-05-06).** Full pipeline confirmed end-to-end: Nano Banana restyle -> 4x-UltraSharp upscale -> LTX 2.3 22B V2V with IC-LoRA HDR. Motion preservation rated GOOD. Style faded at 5-step sigma schedule.
+- **F-LC-007 — Motion and style are separate controls.** Sigmas control motion fidelity (lower = more faithful). CFG, LoRA strength, and prompts control style intensity. Found via 15 rapid iterations using binary search. Optimal: sigma 0.95 start, CFG 2.0, distilled LoRA 0.7.
+- **F-LC-008 — Style fades over time (IC-LoRA limitation).** Single reference frame guides the entire video. Style is strongest on frame 1 and drops to ~60% after the first second. Fundamental to single-reference IC-LoRA — not fixable with parameter tuning.
+- **F-LC-009 — Chunked V2V proposed as the solution (CJ's idea).** Split video into 2-3s chunks, generate a unique Nano Banana reference per chunk's first frame, run V2V per chunk, stitch. Solves style fade and opens per-chunk creative variation.
 
 ## What is still open
 
-- Whether open-source video models (LTX-2.3) can match Kling o1 on camera preservation. **The single most important open question.**
-- Whether the HDR LoRA shifts or degrades visual quality relative to base LTX.
+- Whether LTX-2.3 V2V can match Kling o1 on camera preservation in a direct side-by-side comparison. **Partially answered:** motion preservation rated GOOD in V5r01, but not yet compared on the same source clip.
+- Whether the chunked V2V approach (F-LC-009) eliminates style fade in practice. Planned as V6 workflow.
 - Whether Classic's chunked stitching recipe transfers to LTX-Video, or whether open-source models need a different seam strategy.
 - Whether Hybrid's abstraction layer measurably reduces cost or latency vs Classic. Pending first run.
 - Whether F6 (Weavy composition drift) is a Weavy-specific routing issue or a Nano Banana model behaviour. Test outside Weavy.
+- What sigma schedule and distilled LoRA strength give the best balance of motion preservation vs style adherence beyond the current v15 optimum.
 
 ## The architectural bet
 
@@ -91,7 +96,7 @@ The specific models in use at any point are choices made under uncertainty. The 
 
 **Hybrid** — resolve auth with Robin, confirm API schema, run first end-to-end test, measure cost per shot.
 
-**Local** — deploy RunPod pod, install ComfyUI on the network volume, download model weights, run first end-to-end test (`LC_SPACESHIP_UT_ZIMG_SUPIR_LTXHDR_P001_v01`), then run the 2×2 comparison matrix and the cross-fork camera-preservation comparison vs Classic's Spaceship result.
+**Local** — build the V6 chunked V2V workflow (F-LC-009) to solve style fade. Test SUPIR as upscaler replacement for 4x-UltraSharp. Run direct side-by-side comparison vs Classic on the same Spaceship source clip. Continue sigma/CFG tuning beyond the current v15 optimum.
 
 </script>
 

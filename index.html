@@ -25,35 +25,40 @@
 <div class="layout layout--single">
   <main>
     <section class="hero hero--wide">
-      <div class="eyebrow">HighVis R&amp;D · Programme Hub · 2026-04-28</div>
+      <div class="eyebrow">HighVis R&amp;D · Programme Hub · 2026-05-06</div>
       <h1 class="title">Direct the shot in Unreal. Let AI handle the photoreal.</h1>
       <p class="subtitle">HighVis is a tool-agnostic infrastructure for restyling low-fidelity Unreal renders into photoreal video, while preserving camera, composition, and motion. We're building it three ways in parallel. Each one is a fork: same architecture, different model stack, different infrastructure trade-off. We then compare the forks on the same scenes with the same questions, so the answer still holds when the models change.</p>
       <div class="meta-grid">
         <div class="meta-item"><div class="meta-label">Owners</div><div class="meta-value">Christopher Jorna · Fivefold</div></div>
         <div class="meta-item"><div class="meta-label">Audience</div><div class="meta-value">CoSTAR · Innovate UK · Media Cymru</div></div>
         <div class="meta-item"><div class="meta-label">Forks</div><div class="meta-value">Classic · Hybrid · Local</div></div>
-        <div class="meta-item"><div class="meta-label">Status</div><div class="meta-value">Active · build phase</div></div>
+        <div class="meta-item"><div class="meta-label">Status</div><div class="meta-value">Active · Local fork V2V confirmed, quality tuning</div></div>
       </div>
     </section>
 
     <section class="decisions" aria-label="Notable build decisions">
-      <div class="decisions-title">Notable build decisions (this week)</div>
+      <div class="decisions-title">Recent architectural decisions</div>
       <div class="decisions-sub">Small architectural calls that shape the rest of the build. Documented here so the reasoning sticks.</div>
       <div class="decisions-grid">
         <div class="decision">
-          <div class="decision-tag">Local · workflow shape</div>
-          <div class="decision-head">Preview / Final toggle on every run</div>
-          <div class="decision-body">Stage 1 always renders a forced-720p preview MP4 (~30-45s). A <code>run_final</code> toggle gates Stage 2: ON adds the source-resolution MP4 plus the 16-bit EXR sequence; OFF stops after preview. MP4 saves before EXR inside each stage so a bad preview is killable before the EXR write. Implemented via <code>ImpactSwitch</code> on the latent feeding the final sampler — no input means ComfyUI skips the entire downstream chain.</div>
+          <div class="decision-tag">Local · V2V tuning</div>
+          <div class="decision-head">F-LC-007: Sigmas control motion, CFG/LoRA control style</div>
+          <div class="decision-body">Motion fidelity and style intensity are separate axes. <strong>Sigmas</strong> (noise schedule) control how much the AI deviates from the source video — lower starting sigma = more faithful motion. <strong>CFG</strong>, <strong>LoRA strength</strong>, and <strong>prompts</strong> control style intensity independently. Optimal found via 15 iterations: sigma <code>0.95</code> start, CFG <code>2.0</code>, distilled LoRA <code>0.7</code>. This separation means motion can be locked first, then style pushed without breaking the camera move.</div>
         </div>
         <div class="decision">
-          <div class="decision-tag">Local · reproducibility</div>
-          <div class="decision-head">Frame rate + count auto-extracted from source</div>
-          <div class="decision-body">Output fps and frame count come from <code>GetVideoComponents.frame_rate</code> on the input clip — single source of truth wired to <code>SaveVideo</code>, EXR writer, and <code>EmptyLTXVLatentVideo</code>. Two override toggles (<code>use_manual_fps</code>, <code>use_manual_frames</code>) expose manual widgets when needed. Frame count snaps to LTX-valid <code>8N+1</code> via <code>SimpleMath+</code>. Means a 30 fps source comes out at 30 fps without anyone touching a number.</div>
+          <div class="decision-tag">Local · IC-LoRA limitation</div>
+          <div class="decision-head">F-LC-008: Style fades over time — single reference frame bottleneck</div>
+          <div class="decision-body">IC-LoRA V2V uses a single reference image (frame 0, restyled by Nano Banana) to guide the entire video. Style is strongest on the first frame and fades to ~60% after the first second. This is structural — not fixable with sigma changes. The guide image's influence weakens the further the video gets from the reference frame. Leads directly to the chunked V2V proposal (F-LC-009).</div>
         </div>
         <div class="decision">
-          <div class="decision-tag">Local · GPU access</div>
-          <div class="decision-head">RunPod mounted as a local drive</div>
-          <div class="decision-body">Cloud GPU treated as <code>Z:\</code> via <code>rclone + WinFsp</code> SFTP mount of the pod's <code>/workspace</code>. Compute jobs go through <code>ssh runpod "..."</code>. Keeps this Claude session, its memory, and its agents in place — the pod is just disk + GPU. Network Volume is the persistence layer (survives pod stop/destroy). Eleven-step bootstrap checklist lives at <code>state/handover-runpod-highvis-local.md</code>.</div>
+          <div class="decision-tag">Local · next architecture</div>
+          <div class="decision-head">F-LC-009: Chunked V2V with per-chunk style anchors (CJ's idea)</div>
+          <div class="decision-body">Split the source video into 2–3 second chunks. Generate a unique Nano Banana reference for each chunk's first frame. Run V2V independently per chunk, then stitch. Each chunk gets a fresh style anchor, eliminating the fade-over-time problem. Also opens creative possibilities: different style intensities or references per chunk. Planned as the V6 workflow upgrade.</div>
+        </div>
+        <div class="decision">
+          <div class="decision-tag">Local · method</div>
+          <div class="decision-head">Binary search for parameter optimisation (CJ's idea)</div>
+          <div class="decision-body">Instead of linear increments (0.4, 0.45, 0.5…), make large jumps to bracket the sweet spot, then split the difference. Example: sigma 0.4 has perfect motion but no style → jump to 0.9 (not 0.55). If 0.9 has too much drift → try 0.65 (midpoint). Found the optimal in ~6 runs instead of 15+. Applicable to any continuous parameter search in AI video pipelines.</div>
         </div>
       </div>
     </section>
@@ -69,7 +74,7 @@
       <a class="hub-card" href="research-log.html">
         <div class="card-eyebrow">02 · For researchers</div>
         <div class="card-title">Living Research Log</div>
-        <div class="card-body">The formal academic record. Eleven sections, every claim traced back to a canonical source. Updated as findings land.</div>
+        <div class="card-body">The formal academic record. Twelve sections, every claim traced back to a canonical source. Updated as findings land.</div>
         <div class="card-meta">~25 min read<span class="arrow">→</span></div>
       </a>
 

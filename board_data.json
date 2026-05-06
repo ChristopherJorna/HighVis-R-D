@@ -148,5 +148,266 @@
       "proof_chunk2_raw": "content/output/highvis/classic/highvis-classic-renderer-chunk2-raw-preview-2026-04-23.png",
       "proof_final": "content/output/highvis/classic/highvis-classic-renderer-final-kling-chunked-2026-04-23.png"
     }
+  },
+  {
+    "test_id": "LC_SPACESHIP_UT_ZI_XX_P001_v01",
+    "scene": "SPACESHIP",
+    "pass": "UT",
+    "img": "ZI",
+    "vid": "—",
+    "prompt": "P001",
+    "version": "v01",
+    "date": "2026-04-30",
+    "fork": "local",
+    "score": "rejected",
+    "notes": "Z-Image Base img2img on unlit render. 25 test outputs. Model rejected — painterly output, poor composition preservation, blank rooms at high denoise. Correct settings: lumina2 CLIP, euler/beta, 30 steps, CFG 4, denoise 0.6. Initially misconfigured with qwen_image CLIP (garbled outputs) and wrong sampler for Turbo variant.",
+    "files": {
+      "frame": "",
+      "imggen": "content/output/highvis/local/z-image-tests-20260430/",
+      "magnific": "",
+      "video": ""
+    }
+  },
+  {
+    "test_id": "LC_SPACESHIP_UT_ZIT_XX_P001_v01",
+    "scene": "SPACESHIP",
+    "pass": "UT",
+    "img": "ZIT",
+    "vid": "—",
+    "prompt": "P001",
+    "version": "v01",
+    "date": "2026-04-30",
+    "fork": "local",
+    "score": "rejected",
+    "notes": "Z-Image Turbo img2img on unlit render. Same source as ZI test. Model rejected — same quality issues as Base variant. Correct settings: lumina2 CLIP, res_multistep/simple, 8 steps, CFG 1.0. Found by cross-referencing official Comfy-Org template.",
+    "files": {
+      "frame": "",
+      "imggen": "content/output/highvis/local/z-image-tests-20260430/",
+      "magnific": "",
+      "video": ""
+    }
+  },
+  {
+    "test_id": "LC_SPACESHIP_UT_FX8_XX_P001_v01",
+    "scene": "SPACESHIP",
+    "pass": "UT",
+    "img": "FX8",
+    "vid": "—",
+    "prompt": "P001",
+    "version": "v01",
+    "date": "2026-04-30",
+    "fork": "local",
+    "score": "insufficient",
+    "notes": "Flux Dev FP8 img2img on unlit render. Better than Z-Image but not matching Nano Banana Pro quality. DualCLIPLoader (clip_l + t5xxl_fp8), euler/simple, 20 steps, CFG 1.0. FP8 variant cannot load LoRAs (buffer size mismatch). Pivoted to full bf16 + Depth ControlNet approach.",
+    "files": {
+      "frame": "",
+      "imggen": "",
+      "magnific": "",
+      "video": ""
+    }
+  },
+  {
+    "test_id": "LC_SPACESHIP_UT_ZITMM_T2I_P001_v01",
+    "scene": "SPACESHIP",
+    "pass": "UT",
+    "img": "ZITMM",
+    "vid": "—",
+    "prompt": "P001",
+    "version": "v01",
+    "date": "2026-04-30",
+    "fork": "local",
+    "score": "rejected",
+    "notes": "Z-Image Turbo MickMumpitz professional workflow — txt2img variant (empty latent, denoise=1.0). Correct nodes: QwenImageDiffsynthControlnet, ModelPatchLoader with Z-Image-Turbo-Fun-Controlnet-Union-2.1-2601-8steps.safetensors (6.3GB), ModelSamplingAuraFlow shift=3, res_2s sampler (RES4LYF), KSampler steps=9 cfg=1 simple denoise=1.0. Better than original Z-Image test (F-LC-002) but still inconsistent on unlit renders. Model cannot reliably convert grey mesh to photorealistic output. F-LC-004.",
+    "files": {
+      "frame": "",
+      "imggen": "",
+      "magnific": "",
+      "video": ""
+    }
+  },
+  {
+    "test_id": "LC_SPACESHIP_UT_ZITMM_CN3_P001_v01",
+    "scene": "SPACESHIP",
+    "pass": "UT",
+    "img": "ZITMM",
+    "vid": "—",
+    "prompt": "P001",
+    "version": "v01",
+    "date": "2026-04-30",
+    "fork": "local",
+    "score": "rejected",
+    "notes": "Z-Image Turbo MickMumpitz — triple ControlNet variant (depth 0.5 + canny 0.3 + source 0.75). Dark/grungy results. ControlNet signals appear to fight each other. Quality degraded vs txt2img variant. F-LC-004.",
+    "files": {
+      "frame": "",
+      "imggen": "",
+      "magnific": "",
+      "video": ""
+    }
+  },
+  {
+    "test_id": "LC_SPACESHIP_LT_ZITMM_I2I_P001_v01",
+    "scene": "SPACESHIP",
+    "pass": "LT",
+    "img": "ZITMM",
+    "vid": "—",
+    "prompt": "P001",
+    "version": "v01",
+    "date": "2026-04-30",
+    "fork": "local",
+    "score": "passable-on-lit-only",
+    "notes": "Z-Image Turbo MickMumpitz — img2img on LIT render (source as latent, denoise=0.6, depth CN + source CN). Best Z-Image result overall but only on the lit render (LT pass), which already has lighting/materials from Unreal — model is enhancing, not generating. On UT (unlit) renders, still poor. Pass=LT because this used the lit render, not the untextured grey. Decision: Z-Image line of investigation closed. F-LC-004.",
+    "files": {
+      "frame": "",
+      "imggen": "",
+      "magnific": "",
+      "video": ""
+    }
+  },
+  {
+    "test_id": "LC_SPACESHIP_UT_NB_LTXHDR_P001_v05r01",
+    "scene": "SPACESHIP",
+    "pass": "UT",
+    "img": "NB",
+    "vid": "LTXHDR",
+    "prompt": "P001",
+    "version": "v05r01",
+    "date": "2026-05-06",
+    "fork": "local",
+    "workflow": "Highvis-Local-V5",
+    "status": "first_successful_v2v_output",
+    "score": "",
+    "camera_match_score": 3,
+    "photoreal_score": 2,
+    "stability_score": null,
+    "duration_s": null,
+    "cost_usd": 0.0,
+    "wall_time_s": null,
+    "gpu": "RTX 5090 32GB",
+    "pipeline": "Source video -> Resize(1280x720) -> Nano Banana(Gemini 3 Pro) -> Upscale(4x-UltraSharp) -> LTX 2.3 22B FP8 V2V (IC-LoRA HDR 1.0 + Distilled LoRA 0.5) -> HDR Postprocess -> MP4",
+    "models": {
+      "image": "nano-banana-pro (Gemini 3 Pro backbone)",
+      "upscaler": "4x-UltraSharp",
+      "video": "ltx-2.3-22b-dev-fp8.safetensors",
+      "text_encoder": "comfy_gemma_3_12B_it.safetensors",
+      "distilled_lora": {"file": "ltx-2.3-22b-distilled-lora-384-1.1.safetensors", "strength": 0.5},
+      "hdr_ic_lora": {"file": "ltx-2.3-22b-ic-lora-hdr-0.9.safetensors", "strength": 1.0}
+    },
+    "signal_path": {
+      "model_chain": "Checkpoint(FP8) -> Distilled LoRA(0.5) -> HDR IC-LoRA(1.0) -> CFG Guider",
+      "v2v": "Source -> Resize -> VAEEncode -> IC-LoRA guide latent",
+      "style": "Frame 0 -> Nano Banana -> Upscale -> IC-LoRA guide image",
+      "sampling": "IC-LoRA -> CFGGuider(pos/neg) + Sampler(latent) direct, Sampler -> CropGuides -> output"
+    },
+    "sampler": "euler_ancestral",
+    "cfg": 1.0,
+    "seed": 42,
+    "sigmas": "0.975, 0.909375, 0.725, 0.421875, 0.0",
+    "positive_prompt": "HDR footage",
+    "negative_prompt": "pc game, cartoon, ugly",
+    "resize": {"w": 1280, "h": 720},
+    "observations": {
+      "motion": "Good — source video motion preserved well",
+      "style": "Faded — Nano Banana style insufficient. Fades more over time. Cause: only 5 sigma steps starting at 0.975 (low denoise strength).",
+      "milestone": "FIRST SUCCESSFUL V2V OUTPUT — Local fork end-to-end pipeline confirmed working"
+    },
+    "next_iteration": {
+      "sigmas": "1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875, 0.0",
+      "distilled_lora_strength": "0.7-0.8",
+      "expected_effect": "Stronger style transfer, less fading over time"
+    },
+    "session_notes": "8-hour troubleshooting marathon. Blockers resolved: (1) volume torch shadowing system CUDA, (2) hot-swap SSE not broadcasting, (3) corrupted workflow JSON (last_link_id mismatch causing link ID collisions), (4) duplicate node IDs, (5) KJNodes GetNode wildcard auto-connect issues. V5 workflow built clean from CJ's working base with integrity checks.",
+    "files": {
+      "metadata": "HighVisRnD/outputs/v5_run1_metadata.json",
+      "output_video": "HighVisRnD/outputs/highvis-local-v5_run1_2026-05-06.mp4",
+      "nano_banana_frame": "HighVisRnD/outputs/nano-banana-frame_2026-05-06.png"
+    },
+    "flags": ["style_faded_low_denoise", "first_successful_v2v", "sigmas_need_full_9step"]
+  },
+  {
+    "test_id": "LC_SPACESHIP_UT_NB_LTXHDR_P001_v05r10",
+    "scene": "SPACESHIP",
+    "pass": "UT",
+    "img": "NB",
+    "vid": "LTXHDR",
+    "prompt": "P001",
+    "version": "v05r10",
+    "date": "2026-05-06",
+    "fork": "local",
+    "workflow": "Highvis-Local-V5",
+    "status": "motion_lock_baseline",
+    "score": "",
+    "camera_match_score": 5,
+    "photoreal_score": 1,
+    "gpu": "RTX 5090 32GB",
+    "sampler": "euler_ancestral",
+    "cfg": 2.0,
+    "seed": 42,
+    "sigmas": "0.4, 0.3, 0.2, 0.1, 0.0",
+    "distilled_lora_strength": 0.7,
+    "hdr_ic_lora_strength": 1.0,
+    "observations": {
+      "motion": "Perfect — pixel-identical to source. Proved low sigmas lock motion completely",
+      "style": "None — almost no visible style transfer at this sigma range"
+    },
+    "notes": "Key finding: low sigmas (0.4 start) lock motion perfectly but eliminate style. Establishes that motion and style are separate controls (F-LC-007).",
+    "flags": ["motion_lock_proof", "f_lc_007"]
+  },
+  {
+    "test_id": "LC_SPACESHIP_UT_NB_LTXHDR_P001_v05r14",
+    "scene": "SPACESHIP",
+    "pass": "UT",
+    "img": "NB",
+    "vid": "LTXHDR",
+    "prompt": "P001",
+    "version": "v05r14",
+    "date": "2026-05-06",
+    "fork": "local",
+    "workflow": "Highvis-Local-V5",
+    "status": "style_fade_discovery",
+    "score": "",
+    "camera_match_score": 4,
+    "photoreal_score": 3,
+    "gpu": "RTX 5090 32GB",
+    "sampler": "euler_ancestral",
+    "cfg": 2.0,
+    "seed": 42,
+    "sigmas": "0.9, 0.8, 0.5, 0.3, 0.0",
+    "distilled_lora_strength": 0.7,
+    "hdr_ic_lora_strength": 1.0,
+    "observations": {
+      "motion": "Good — source motion preserved",
+      "style": "~60% — first frame strong, fades after first second then holds. Confirmed style fade is IC-LoRA single-reference limitation (F-LC-008)"
+    },
+    "notes": "Binary search jump from 0.4 to 0.9. Discovered style fade over time — fundamental IC-LoRA limitation, not sigma-related.",
+    "flags": ["style_fade_discovery", "binary_search", "f_lc_008"]
+  },
+  {
+    "test_id": "LC_SPACESHIP_UT_NB_LTXHDR_P001_v05r15",
+    "scene": "SPACESHIP",
+    "pass": "UT",
+    "img": "NB",
+    "vid": "LTXHDR",
+    "prompt": "P001",
+    "version": "v05r15",
+    "date": "2026-05-06",
+    "fork": "local",
+    "workflow": "Highvis-Local-V5",
+    "status": "current_best",
+    "score": "",
+    "camera_match_score": 4,
+    "photoreal_score": 4,
+    "gpu": "RTX 5090 32GB",
+    "sampler": "euler_ancestral",
+    "cfg": 2.0,
+    "seed": 42,
+    "sigmas": "0.95, 0.8, 0.5, 0.3, 0.0",
+    "distilled_lora_strength": 0.7,
+    "hdr_ic_lora_strength": 1.0,
+    "observations": {
+      "motion": "Good — source motion preserved",
+      "style": "Best result — stronger than v14. Still fades when camera moves away from start frame. Chunked V2V needed (F-LC-009)"
+    },
+    "notes": "Current optimum. Binary search split from 0.9 to 0.95. Best balance of motion fidelity and style transfer for single-reference V2V.",
+    "flags": ["current_best", "binary_search", "f_lc_009_needed"]
   }
 ]
