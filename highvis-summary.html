@@ -52,7 +52,7 @@ HighVis is a render pipeline that takes a low-fidelity Unreal Engine output and 
 |------|-----------------|--------|-------------|
 | **Classic** | What is the quality ceiling using the best proprietary tools? | Active · benchmark fork | ~$1.01 (Kling Pro) · ~$1.22 (with Seedance A/B) |
 | **Hybrid** | What does routing through an abstraction layer (Robin's AIVFX) buy in cost / latency / resilience? | Dormant · blocked on auth | TBD — first run pending |
-| **Local** | How much quality do you sacrifice to eliminate per-shot cost and all API dependency? | Active · V2V confirmed, quality tuning (15 iterations) | $0.00 |
+| **Local** | How much quality do you sacrifice to eliminate per-shot cost and all API dependency? | Active · pipeline confirmed, quality tuning (15 runs) | $0.00 |
 
 ## Confirmed Local stack (2026-05-06)
 
@@ -60,7 +60,7 @@ HighVis is a render pipeline that takes a low-fidelity Unreal Engine output and 
 |-------|-------|-------|
 | First-frame restyle | `nano-banana-pro` (Gemini 3 Pro) | Proprietary API — accepted after full open-source evaluation (F-LC-005) |
 | Upscaler | `4x-UltraSharp` (interim) / `supir` (target) | 4x-UltraSharp confirmed working; SUPIR evaluation pending |
-| Video | `ltx-2.3-22b-dev-fp8` + Distilled LoRA (0.7) + `IC-LoRA-HDR` (1.0) | Open weights, V2V confirmed working on RTX 5090 32GB |
+| Video | `ltx-2.3-22b-dev-fp8` + Distilled LoRA (0.7) + `IC-LoRA-HDR` (1.0) | Open weights, confirmed working on RTX 5090 32GB |
 
 The Local fork is no longer fully open-source at the image stage — Nano Banana Pro (proprietary API) is required because no tested open-source image model could reliably texture unlit 3D renders (F-LC-005). The video and upscale stages remain $0/shot. The EXR / HDR output path is the differentiator: Classic outputs 8-bit SDR MP4; Local targets linear HDR LogC3 in 16-bit EXR sequences.
 
@@ -72,19 +72,19 @@ The Local fork is no longer fully open-source at the image stage — Nano Banana
 - **F4 — Structural image edits are unreliable in a single prompt.** Two-pass editing succeeded where single-pass failed.
 - **F5 — Negative style constraints are required, not optional.** "Not CGI, not illustrated, not a video game" was needed alongside style references.
 - **First seam-clean chunked run achieved 2026-04-23.** Two 3-second Kling o1 chunks producing a 6-second seamless output. Test ID `SPACESHIP_UT_NB_KLC_P002_v01`. Five-lever recipe documented.
-- **F-LC-006 — First successful Local fork V2V output (2026-05-06).** Full pipeline confirmed end-to-end: Nano Banana restyle -> 4x-UltraSharp upscale -> LTX 2.3 22B V2V with IC-LoRA HDR. Motion preservation rated GOOD. Style faded at 5-step sigma schedule.
+- **F-LC-006 — First successful Local fork output (2026-05-06).** Full pipeline confirmed end-to-end: Nano Banana restyle -> 4x-UltraSharp upscale -> LTX 2.3 22B with IC-LoRA HDR. Motion preservation rated GOOD. Style faded at 5-step sigma schedule.
 - **F-LC-007 — Motion and style are separate controls.** Sigmas control motion fidelity (lower = more faithful). CFG, LoRA strength, and prompts control style intensity. Found via 15 rapid iterations using binary search. Optimal: sigma 0.95 start, CFG 2.0, distilled LoRA 0.7.
 - **F-LC-008 — Style fades over time (IC-LoRA limitation).** Single reference frame guides the entire video. Style is strongest on frame 1 and drops to ~60% after the first second. Fundamental to single-reference IC-LoRA — not fixable with parameter tuning.
-- **F-LC-009 — Chunked V2V proposed as the solution (CJ's idea).** Split video into 2-3s chunks, generate a unique Nano Banana reference per chunk's first frame, run V2V per chunk, stitch. Solves style fade and opens per-chunk creative variation.
+- **F-LC-009 — Chunked generation proposed as the solution.** Split video into 2-3s chunks, generate a unique Nano Banana reference per chunk's first frame, restyle per chunk, stitch. Solves style fade and opens per-chunk creative variation.
 
 ## What is still open
 
 - Whether LTX-2.3 V2V can match Kling o1 on camera preservation in a direct side-by-side comparison. **Partially answered:** motion preservation rated GOOD in V5r01, but not yet compared on the same source clip.
-- Whether the chunked V2V approach (F-LC-009) eliminates style fade in practice. Planned as V6 workflow.
+- Whether the chunked approach (F-LC-009) eliminates style fade in practice. Planned as V6 workflow.
 - Whether Classic's chunked stitching recipe transfers to LTX-Video, or whether open-source models need a different seam strategy.
 - Whether Hybrid's abstraction layer measurably reduces cost or latency vs Classic. Pending first run.
 - Whether F6 (Weavy composition drift) is a Weavy-specific routing issue or a Nano Banana model behaviour. Test outside Weavy.
-- What sigma schedule and distilled LoRA strength give the best balance of motion preservation vs style adherence beyond the current v15 optimum.
+- What sigma schedule and LoRA strength give the best balance of motion preservation vs style adherence beyond the current v15 optimum.
 
 ## The architectural bet
 
@@ -96,7 +96,7 @@ The specific models in use at any point are choices made under uncertainty. The 
 
 **Hybrid** — resolve auth with Robin, confirm API schema, run first end-to-end test, measure cost per shot.
 
-**Local** — build the V6 chunked V2V workflow (F-LC-009) to solve style fade. Test SUPIR as upscaler replacement for 4x-UltraSharp. Run direct side-by-side comparison vs Classic on the same Spaceship source clip. Continue sigma/CFG tuning beyond the current v15 optimum.
+**Local** — build the V6 chunked workflow (F-LC-009) to solve style fade. Test SUPIR as upscaler replacement for 4x-UltraSharp. Run direct side-by-side comparison vs Classic on the same Spaceship source clip. Continue sigma/CFG tuning beyond the current v15 optimum.
 
 </script>
 

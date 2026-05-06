@@ -3,51 +3,235 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HighVis R&D — Fivefold</title>
+<title>Test Results — HighVis R&D</title>
+<link rel="stylesheet" href="highvis-shared.css">
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    background: #0f0f0f;
-    color: #e0e0e0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: 13px;
-  }
-
-  /* ── Header ── */
-  header {
-    padding: 16px 24px;
-    border-bottom: 1px solid #1e1e1e;
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    flex-wrap: wrap;
+  /* ── Dark-mode overrides for test results page ── */
+  body[data-page="board"] {
+    --bg: #0a0a0a;
+    --bg-deep: #111;
+    --surface: #161616;
+    --ink: #e0e0e0;
+    --ink-soft: #aaa;
+    --ink-muted: #666;
+    --rule: #222;
+    --accent: #c4622d;
+    --accent-soft: #e5825f;
+    --accent-bg: #1e0e06;
+    --code-bg: #1a1a1a;
     background: #0a0a0a;
+    color: #e0e0e0;
+    font-size: 15px;
+    line-height: 1.6;
   }
 
-  .header-brand {
+  /* Fix topbar for dark theme */
+  body[data-page="board"] .topbar { background: rgba(10, 10, 10, 0.92); border-bottom-color: #222; }
+  body[data-page="board"] .topbar-nav a { color: #888; }
+  body[data-page="board"] .topbar-nav a:hover { background: #1a1a1a; color: var(--accent); }
+  body[data-page="board"] .topbar-nav a.active { background: var(--accent-bg); color: var(--accent); }
+  body[data-page="board"] .brand { color: #fff; }
+  body[data-page="board"] .topbar-pill { background: var(--accent-bg); }
+
+  /* ── Page layout ── */
+  .page-wrap {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 48px 32px 96px;
+  }
+
+  .page-title {
+    font-family: var(--serif);
+    font-size: clamp(32px, 4vw, 48px);
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+  }
+
+  .page-subtitle {
+    font-size: 16px;
+    color: var(--ink-muted);
+    margin-bottom: 48px;
+    font-family: var(--sans);
+  }
+
+  /* ── Section headings ── */
+  .section-heading {
+    font-family: var(--serif);
+    font-size: 24px;
+    font-weight: 600;
+    color: #fff;
+    margin: 64px 0 8px;
+    padding-top: 32px;
+    border-top: 1px solid var(--rule);
+  }
+  .section-heading:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+
+  .section-desc {
+    font-size: 14px;
+    color: var(--ink-muted);
+    margin-bottom: 24px;
+    font-family: var(--sans);
+  }
+
+  /* ── Cross-fork status table ── */
+  .status-table-wrap {
+    overflow-x: auto;
+    border-radius: 10px;
+    border: 1px solid var(--rule);
+    margin-bottom: 48px;
+  }
+  .status-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--sans);
+    font-size: 13px;
+    background: var(--surface);
+  }
+  .status-table th {
+    text-align: left;
+    font-weight: 600;
+    padding: 14px 18px;
+    border-bottom: 2px solid var(--rule);
+    color: #fff;
+    background: #111;
+    white-space: nowrap;
+  }
+  .status-table td {
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--rule);
+    color: var(--ink-soft);
+    vertical-align: top;
+    line-height: 1.5;
+  }
+  .status-table tbody tr:last-child td { border-bottom: none; }
+  .status-table tbody tr:hover { background: #1a1a1a; }
+  .status-table td:first-child {
+    font-weight: 600;
+    color: var(--ink-muted);
+    white-space: nowrap;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .status-table .col-classic { border-left: 2px solid var(--accent); }
+
+  .fork-active { color: #5cb85c; }
+  .fork-dormant { color: #666; }
+  .fork-rejected { color: #d9534f; }
+
+  /* ── Image evaluation section ── */
+  .eval-row {
+    margin-bottom: 40px;
+  }
+  .eval-row-title {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+
+  .benchmark-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 700px) {
+    .benchmark-pair { grid-template-columns: 1fr; }
+  }
+
+  .img-card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .img-card img {
+    width: 100%;
+    display: block;
+    background: #000;
+  }
+  .img-card .img-caption {
+    padding: 12px 16px;
+    font-family: var(--sans);
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+  .img-card .img-caption strong {
+    color: #fff;
+    font-weight: 600;
+  }
+
+  /* Z-Image failure grid */
+  .failure-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  @media (max-width: 700px) {
+    .failure-grid { grid-template-columns: 1fr; }
+  }
+
+  /* Face test pair */
+  .face-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 700px) {
+    .face-pair { grid-template-columns: 1fr; }
+  }
+  .face-caption {
+    grid-column: 1 / -1;
+    padding: 16px 20px;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    font-family: var(--sans);
+    font-size: 14px;
+    color: var(--ink-soft);
+    line-height: 1.6;
+  }
+
+  /* Verdict box */
+  .verdict-box {
+    margin-top: 32px;
+    padding: 24px 28px;
+    background: var(--accent-bg);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    margin-bottom: 16px;
+  }
+  .verdict-box .verdict-label {
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .verdict-box p {
+    font-family: var(--sans);
+    font-size: 15px;
+    color: var(--ink);
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  /* ── Classic grid section ── */
+  .classic-filters {
     display: flex;
-    align-items: center;
-    gap: 14px;
-    border-right: 1px solid #222;
-    padding-right: 20px;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
   }
-
-  .header-brand img {
-    height: 32px;
-    width: auto;
-    background: #fff;
-    border-radius: 4px;
-    padding: 4px 6px;
-  }
-
-  .header-titles { display: flex; flex-direction: column; gap: 1px; }
-  .header-titles h1 { font-size: 13px; font-weight: 700; color: #fff; letter-spacing: 0.08em; text-transform: uppercase; }
-  .header-titles span { font-size: 10px; color: #c4622d; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; }
-
-  .filters { display: flex; gap: 10px; flex-wrap: wrap; }
-
-  select {
+  .classic-filters select {
     background: #1a1a1a;
     border: 1px solid #333;
     color: #ccc;
@@ -55,28 +239,32 @@
     border-radius: 4px;
     font-size: 12px;
     cursor: pointer;
+    font-family: var(--sans);
   }
-  select:hover { border-color: #555; }
+  .classic-filters select:hover { border-color: #555; }
 
-  .count { color: #555; font-size: 12px; margin-left: auto; }
+  .count {
+    color: var(--ink-muted);
+    font-size: 12px;
+    font-family: var(--sans);
+    margin-left: auto;
+  }
 
-  /* ── Grid ── */
   #grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 12px;
-    padding: 16px 24px;
   }
 
   .card {
-    background: #161616;
-    border: 1px solid #252525;
+    background: var(--surface);
+    border: 1px solid var(--rule);
     border-radius: 6px;
     overflow: hidden;
     cursor: pointer;
     transition: border-color 0.15s, transform 0.1s;
   }
-  .card:hover { border-color: #c4622d; transform: translateY(-1px); }
+  .card:hover { border-color: var(--accent); transform: translateY(-1px); }
 
   .card-thumb {
     width: 100%;
@@ -96,18 +284,18 @@
   }
 
   .card-body { padding: 10px 12px 12px; }
-  .card-id { font-size: 10px; color: #555; margin-bottom: 6px; font-family: monospace; word-break: break-all; }
+  .card-id { font-size: 10px; color: #555; margin-bottom: 6px; font-family: var(--mono); word-break: break-all; }
   .card-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
 
-  .tag { font-size: 10px; padding: 2px 6px; border-radius: 3px; font-weight: 500; }
-  .tag-scene  { background: #1e1208; color: #c4622d; }
+  .tag { font-size: 10px; padding: 2px 6px; border-radius: 3px; font-weight: 500; font-family: var(--sans); }
+  .tag-scene  { background: #1e1208; color: var(--accent); }
   .tag-pass   { background: #1a1a2a; color: #6d6db3; }
   .tag-img    { background: #1a1a1a; color: #888; }
   .tag-vid    { background: #1a1a1a; color: #aaa; }
 
   .card-score { font-size: 20px; font-weight: 700; color: #fff; }
   .card-score span { font-size: 12px; color: #444; font-weight: 400; }
-  .card-notes { color: #666; font-size: 11px; margin-top: 4px; line-height: 1.4; }
+  .card-notes { color: #666; font-size: 11px; margin-top: 4px; line-height: 1.4; font-family: var(--sans); }
 
   /* ── Modal overlay ── */
   #modal-overlay {
@@ -138,7 +326,7 @@
     justify-content: space-between;
     background: #0d0d0d;
   }
-  #modal-title { font-size: 12px; font-weight: 600; color: #fff; font-family: monospace; }
+  #modal-title { font-size: 12px; font-weight: 600; color: #fff; font-family: var(--mono); }
   #modal-close {
     background: none; border: none; color: #555;
     font-size: 22px; cursor: pointer; line-height: 1; padding: 0 4px;
@@ -177,7 +365,7 @@
     top: 0; bottom: 0;
     left: 50%;
     width: 2px;
-    background: #c4622d;
+    background: var(--accent);
     transform: translateX(-50%);
     pointer-events: none;
   }
@@ -188,7 +376,7 @@
     transform: translate(-50%, -50%);
     width: 38px; height: 38px;
     border-radius: 50%;
-    background: #c4622d;
+    background: var(--accent);
     border: 2px solid #fff;
     display: flex; align-items: center; justify-content: center;
     pointer-events: none;
@@ -213,8 +401,9 @@
     color: #aaa;
     padding: 3px 8px;
     border-radius: 3px;
+    font-family: var(--sans);
   }
-  .compare-label.right { color: #c4622d; }
+  .compare-label.right { color: var(--accent); }
 
   /* ── Stage picker ── */
   .stage-picker {
@@ -225,7 +414,7 @@
     align-items: center;
     background: #0d0d0d;
   }
-  .stage-picker label { font-size: 10px; color: #444; text-transform: uppercase; letter-spacing: 0.1em; margin-right: 4px; }
+  .stage-picker label { font-size: 10px; color: #444; text-transform: uppercase; letter-spacing: 0.1em; margin-right: 4px; font-family: var(--sans); }
 
   .stage-btn {
     background: #1a1a1a;
@@ -236,9 +425,10 @@
     font-size: 11px;
     cursor: pointer;
     transition: all 0.1s;
+    font-family: var(--sans);
   }
   .stage-btn:hover { border-color: #444; color: #ccc; }
-  .stage-btn.active { background: #1e0e06; border-color: #c4622d; color: #c4622d; }
+  .stage-btn.active { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
   .stage-btn:disabled { opacity: 0.25; cursor: default; }
 
   /* ── Video section ── */
@@ -286,9 +476,9 @@
     transition: all 0.1s;
   }
   .vid-btn:hover { border-color: #555; color: #ccc; }
-  .vid-btn.active { background: #1e0e06; border-color: #c4622d; color: #c4622d; }
+  .vid-btn.active { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
   .vid-btn:disabled { opacity: 0.25; cursor: default; }
-  .vid-label { font-size: 9px; color: #444; text-transform: uppercase; letter-spacing: 0.08em; text-align: center; }
+  .vid-label { font-size: 9px; color: #444; text-transform: uppercase; letter-spacing: 0.08em; text-align: center; font-family: var(--sans); }
 
   /* ── Meta + notes ── */
   #modal-meta {
@@ -299,7 +489,7 @@
     border-bottom: 1px solid #1a1a1a;
   }
   .meta-item { display: flex; flex-direction: column; gap: 2px; }
-  .meta-key  { font-size: 10px; color: #444; text-transform: uppercase; letter-spacing: 0.08em; }
+  .meta-key  { font-size: 10px; color: #444; text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--sans); }
   .meta-val  { font-size: 13px; color: #ccc; }
 
   #modal-notes-area { padding: 12px 20px 16px; }
@@ -314,6 +504,7 @@
     line-height: 1.5;
     resize: vertical;
     min-height: 52px;
+    font-family: var(--sans);
   }
 
   .empty-state {
@@ -324,31 +515,178 @@
   }
 
   @media (max-width: 600px) {
+    .page-wrap { padding: 32px 16px 64px; }
     .video-section { flex-direction: column; }
     .video-controls { flex-direction: row; }
   }
 </style>
 </head>
-<body>
+<body data-page="board">
 
-<header>
-  <div class="header-brand">
-    <img src="assets/fivefold-logo.png" alt="Fivefold">
-    <div class="header-titles">
-      <h1>HighVis R&D</h1>
-      <span>AI Pipeline Testing</span>
+<script src="highvis-nav.js"></script>
+
+<div class="page-wrap">
+
+  <!-- Page header -->
+  <h1 class="page-title">Test Results</h1>
+  <p class="page-subtitle">Image and video model evaluations across all three HighVis rendering forks.</p>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 1 — Cross-Fork Status
+       ══════════════════════════════════════════════════════════════ -->
+  <h2 class="section-heading">Cross-Fork Status</h2>
+  <p class="section-desc">Where each rendering fork stands as of 6 May 2026.</p>
+
+  <div class="status-table-wrap">
+    <table class="status-table">
+      <thead>
+        <tr>
+          <th></th>
+          <th>Classic</th>
+          <th>Hybrid</th>
+          <th>Local</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Status</td>
+          <td><span class="fork-active">Active</span> — quality benchmark</td>
+          <td><span class="fork-dormant">Dormant</span> — waiting on API access</td>
+          <td><span class="fork-active">Active</span> — pipeline confirmed, quality tuning</td>
+        </tr>
+        <tr>
+          <td>Image Model</td>
+          <td>Nano Banana Pro (proprietary)</td>
+          <td>Same as Classic (via Robin's infra)</td>
+          <td>Nano Banana Pro (proprietary — open-source alternatives tested and rejected)</td>
+        </tr>
+        <tr>
+          <td>Video Model</td>
+          <td>Kling o1, Seedance 2.0, Luma, Wan</td>
+          <td>Same models via abstraction layer</td>
+          <td>LTX-2.3 22B + HDR IC-LoRA (confirmed working)</td>
+        </tr>
+        <tr>
+          <td>Cost per shot</td>
+          <td>~$1.00-1.22</td>
+          <td>TBD</td>
+          <td>$0.00 (GPU rental only)</td>
+        </tr>
+        <tr>
+          <td>Output format</td>
+          <td>8-bit MP4</td>
+          <td>TBD</td>
+          <td>16-bit HDR EXR (planned)</td>
+        </tr>
+        <tr>
+          <td>Tests run</td>
+          <td>8</td>
+          <td>0</td>
+          <td>18 (3 image eval + 15 parameter tuning runs)</td>
+        </tr>
+        <tr>
+          <td>Key finding</td>
+          <td>Camera motion preserved (F1)</td>
+          <td>—</td>
+          <td><span class="fork-active">Pipeline working</span> — motion and style are separate controls (F-LC-007)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 2 — Image Model Evaluation (hero)
+       ══════════════════════════════════════════════════════════════ -->
+  <h2 class="section-heading">Image Model Evaluation — 30 April 2026</h2>
+  <p class="section-desc">Local fork testing: can an open-source image model match the quality of the proprietary Nano Banana Pro used by Classic?</p>
+
+  <!-- Row 1: Benchmark to beat -->
+  <div class="eval-row">
+    <div class="eval-row-title">The benchmark to beat</div>
+    <div class="benchmark-pair">
+      <div class="img-card">
+        <img src="scenes/SPACESHIP/tests/SPACESHIP_UT_NB_KL_P001_v01/source_frame.png" alt="Unlit 3D render — source frame" loading="lazy">
+        <div class="img-caption"><strong>Source frame</strong> — Unlit 3D render from Unreal Engine. This is what every image model receives as input.</div>
+      </div>
+      <div class="img-card">
+        <img src="scenes/SPACESHIP/tests/SPACESHIP_UT_NB_KL_P001_v01/img_gen.png" alt="Nano Banana Pro result" loading="lazy">
+        <div class="img-caption"><strong>Nano Banana Pro result (Classic fork)</strong> — The quality bar. Realistic materials, correct lighting, all objects from the source preserved in place.</div>
+      </div>
     </div>
   </div>
-  <div class="filters">
+
+  <!-- Row 2: Z-Image failures -->
+  <div class="eval-row">
+    <div class="eval-row-title">Z-Image test results — rejected</div>
+    <div class="failure-grid">
+      <div class="img-card">
+        <img src="scenes/SPACESHIP/tests/LC_SPACESHIP_UT_ZI_XX_P001_v01/zi_denoise_high_01.png" alt="Z-Image high creativity" loading="lazy">
+        <div class="img-caption">High creativity — walls painted but all objects from source lost</div>
+      </div>
+      <div class="img-card">
+        <img src="scenes/SPACESHIP/tests/LC_SPACESHIP_UT_ZI_XX_P001_v01/zi_03.png" alt="Z-Image mid creativity" loading="lazy">
+        <div class="img-caption">Mid creativity — clean surfaces but empty room, nothing from source survives</div>
+      </div>
+      <div class="img-card">
+        <img src="scenes/SPACESHIP/tests/LC_SPACESHIP_UT_ZI_XX_P001_v01/zi_08.png" alt="Z-Image best result" loading="lazy">
+        <div class="img-caption">Best Z-Image result — better textures but geometry oversimplified</div>
+      </div>
+      <div class="img-card">
+        <img src="scenes/SPACESHIP/tests/LC_SPACESHIP_UT_ZI_XX_P001_v01/zi_denoise_low_15.png" alt="Z-Image low creativity" loading="lazy">
+        <div class="img-caption">Low creativity — room shape preserved but still looks unlit, no realistic materials added</div>
+      </div>
+      <div class="img-card">
+        <img src="scenes/SPACESHIP/tests/LC_SPACESHIP_UT_ZI_XX_P001_v01/zi_denoise_low_10.png" alt="Z-Image configuration error" loading="lazy">
+        <div class="img-caption">Configuration error — wrong text encoder produced garbled text in output</div>
+      </div>
+      <div class="img-card">
+        <img src="scenes/SPACESHIP/tests/LC_SPACESHIP_UT_ZI_XX_P001_v01/zi_18.png" alt="Z-Image closest to source" loading="lazy">
+        <div class="img-caption">Closest to source composition — still painterly, compare to Nano Banana above</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 3: Face test -->
+  <div class="eval-row">
+    <div class="eval-row-title">Face consistency test</div>
+    <div class="face-pair">
+      <div class="img-card">
+        <img src="scenes/SPACESHIP/tests/LC_SPACESHIP_UT_ZI_XX_P001_v01/zi_turbo_21.png" alt="Face test generation 1" loading="lazy">
+        <div class="img-caption">Generation 1 — photograph input</div>
+      </div>
+      <div class="img-card">
+        <img src="scenes/SPACESHIP/tests/LC_SPACESHIP_UT_ZI_XX_P001_v01/zi_turbo_25.png" alt="Face test generation 2" loading="lazy">
+        <div class="img-caption">Generation 2 — same input, different face</div>
+      </div>
+      <div class="face-caption">
+        To confirm the model wasn't broken, we tested it on a photograph instead of a 3D render. The model produced higher-quality results but changed the subject's face between generations — confirming the model works but can't preserve what it's given. It generates well, but it doesn't respect the reference.
+      </div>
+    </div>
+  </div>
+
+  <!-- Verdict -->
+  <div class="verdict-box">
+    <div class="verdict-label">Verdict</div>
+    <p>Z-Image rejected. Next up: Flux Dev with depth-guided generation — instead of asking the AI to copy pixels from the source (which degrades as you give it more creative freedom), we extract the 3D depth structure from the source frame and use that as a guide. The AI gets full creative freedom on textures and lighting while the depth map locks the composition in place.</p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 3 — Classic Fork Results (existing card grid)
+       ══════════════════════════════════════════════════════════════ -->
+  <h2 class="section-heading">Classic Fork Results</h2>
+  <p class="section-desc">Filterable test grid for the Classic rendering fork. Click any card to compare source vs output.</p>
+
+  <div class="classic-filters">
     <select id="f-scene"><option value="">All scenes</option></select>
     <select id="f-img"><option value="">All image models</option></select>
     <select id="f-vid"><option value="">All video models</option></select>
     <select id="f-pass"><option value="">All passes</option></select>
+    <span class="count" id="result-count"></span>
   </div>
-  <span class="count" id="result-count"></span>
-</header>
 
-<div id="grid"></div>
+  <div id="grid"></div>
+
+</div>
 
 <!-- ── Modal ── -->
 <div id="modal-overlay">
@@ -356,7 +694,7 @@
 
     <div id="modal-header">
       <span id="modal-title"></span>
-      <button id="modal-close">×</button>
+      <button id="modal-close">&times;</button>
     </div>
 
     <!-- Compare slider -->
@@ -392,11 +730,11 @@
       </div>
       <div class="video-controls">
         <div>
-          <button class="vid-btn" id="btn-play" onclick="togglePlay()" title="Play / Pause">▶</button>
+          <button class="vid-btn" id="btn-play" onclick="togglePlay()" title="Play / Pause">&#9654;</button>
           <div class="vid-label">Play</div>
         </div>
         <div>
-          <button class="vid-btn" id="btn-loop" onclick="toggleLoop()" title="Loop">↻</button>
+          <button class="vid-btn" id="btn-loop" onclick="toggleLoop()" title="Loop">&#8635;</button>
           <div class="vid-label">Loop</div>
         </div>
       </div>
@@ -413,6 +751,7 @@
 
 <script>
 let allTests = [];
+let classicTests = [];
 let currentTest = null;
 let sliderPos = 50;
 let isDragging = false;
@@ -424,21 +763,23 @@ async function loadData() {
   try {
     const r = await fetch("board_data.json?t=" + Date.now());
     allTests = await r.json();
+    // Classic grid only shows non-Local tests (Local rejected ones are shown in the evaluation section above)
+    classicTests = allTests.filter(t => !t.fork || t.fork !== 'local');
     populateFilters();
     renderGrid();
   } catch(e) {
     document.getElementById("grid").innerHTML =
-      '<div class="empty-state">No board_data.json found — run <code>python categorize.py</code> after dropping files in dump/.</div>';
+      '<div class="empty-state">No board_data.json found.</div>';
   }
 }
 
 // ── Filters ───────────────────────────────────────────────────────────────────
 
 function populateFilters() {
-  fillSelect("f-scene", [...new Set(allTests.map(t => t.scene))].sort());
-  fillSelect("f-img",   [...new Set(allTests.map(t => t.img))].sort());
-  fillSelect("f-vid",   [...new Set(allTests.map(t => t.vid))].sort());
-  fillSelect("f-pass",  [...new Set(allTests.map(t => t.pass))].sort());
+  fillSelect("f-scene", [...new Set(classicTests.map(t => t.scene))].sort());
+  fillSelect("f-img",   [...new Set(classicTests.map(t => t.img))].sort());
+  fillSelect("f-vid",   [...new Set(classicTests.map(t => t.vid))].sort());
+  fillSelect("f-pass",  [...new Set(classicTests.map(t => t.pass))].sort());
 }
 
 function fillSelect(id, values) {
@@ -462,7 +803,7 @@ function renderGrid() {
     vid:   document.getElementById("f-vid").value,
     pass:  document.getElementById("f-pass").value,
   };
-  const filtered = allTests.filter(t =>
+  const filtered = classicTests.filter(t =>
     (!f.scene || t.scene === f.scene) &&
     (!f.img   || t.img   === f.img)   &&
     (!f.vid   || t.vid   === f.vid)   &&
@@ -470,7 +811,7 @@ function renderGrid() {
   );
 
   document.getElementById("result-count").textContent =
-    filtered.length + " / " + allTests.length + " tests";
+    filtered.length + " / " + classicTests.length + " tests";
 
   const grid = document.getElementById("grid");
   if (!filtered.length) {
@@ -545,7 +886,7 @@ function openModal(test) {
     vid.style.display = "none";
     noVidMsg.style.display = "";
   }
-  document.getElementById("btn-play").textContent = "▶";
+  document.getElementById("btn-play").textContent = "\u25B6";
 
   // Meta
   document.getElementById("modal-meta").innerHTML = [
@@ -620,8 +961,8 @@ function togglePlay() {
   const vid = document.getElementById("modal-video");
   const btn = document.getElementById("btn-play");
   if (!vid.src) return;
-  if (vid.paused) { vid.play(); btn.textContent = "⏸"; }
-  else            { vid.pause(); btn.textContent = "▶"; }
+  if (vid.paused) { vid.play(); btn.textContent = "\u23F8"; }
+  else            { vid.pause(); btn.textContent = "\u25B6"; }
 }
 
 function toggleLoop() {
@@ -632,7 +973,7 @@ function toggleLoop() {
 }
 
 document.getElementById("modal-video").addEventListener("ended", () => {
-  document.getElementById("btn-play").textContent = "▶";
+  document.getElementById("btn-play").textContent = "\u25B6";
 });
 
 loadData();

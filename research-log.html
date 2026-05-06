@@ -61,7 +61,7 @@
 
 **Programme:** HighVis R&D
 **Owner:** Christopher Jorna / Koda Productions Ltd
-**Forks:** Classic (active) · Hybrid (dormant, infra wired) · Local (active, V2V confirmed — quality tuning)
+**Forks:** Classic (active) · Hybrid (dormant, infra wired) · Local (active, pipeline confirmed — quality tuning)
 **Last updated:** 2026-05-06
 
 ---
@@ -141,10 +141,10 @@ Hybrid's core research question is: what does routing the same models through a 
 
 #### 3.3 Local — open-source video + upscale, proprietary image restyle
 
-**Status:** active — first V2V output 2026-05-06; 15 iterations completed; quality tuning phase
+**Status:** active — first end-to-end output 2026-05-06; 15 parameter tuning runs completed; quality tuning phase
 **Last active:** 2026-05-06
 
-Local builds the same pipeline using only open-source models running on a rented cloud GPU (RunPod RTX 5090, ~$0.50/hr). The remote GPU storage is mounted as a local drive on Windows, so files on the remote machine can be browsed and edited as if they were local. Zero per-shot cost once the hardware is running. Full reproducibility: anyone with a RunPod account can reconstruct the entire compute environment by attaching the same storage volume and running the bootstrap script.
+Local builds the same pipeline using only open-source models running on a rented cloud GPU (RunPod RTX 5090, ~$1.00/hr). The remote GPU storage is mounted as a local drive on Windows, so files on the remote machine can be browsed and edited as if they were local. Zero per-shot cost once the hardware is running. Full reproducibility: anyone with a RunPod account can reconstruct the entire compute environment by attaching the same storage volume and running the bootstrap script.
 
 Cost: $0.00 per shot (only GPU rental time, spread across all work done in a session). Infrastructure: RunPod RTX 5090 accessed via SSH for GPU jobs; 65GB persistent network volume (`racial_rose_raven`, EUR-NO-1) mounted as `Z:\` on Windows. Source: `highvis-status.json`, `forks/local/findings.md`.
 
@@ -332,7 +332,7 @@ The Local fork's model stack is confirmed working end-to-end as of 2026-05-06. T
 
 **2026-04-30 revision:** Z-Image Base was rejected after a full day of testing on RunPod RTX 5090 (F-LC-002). Both the Base and faster Turbo variants produced painterly, stylised output that was unsuitable for photorealistic restyling of unlit 3D renders. It has been replaced by Flux Dev with a depth-guided composition approach (F-LC-003). See section 12 for the full test day narrative.
 
-**2026-05-06 confirmation:** First V2V output achieved (F-LC-006), followed by 15 rapid iterations to find optimal settings. Nano Banana Pro confirmed as the image stage. 4x-UltraSharp used as interim upscaler (SUPIR not yet tested). LTX 2.3 22B FP8 + Distilled LoRA + HDR IC-LoRA confirmed working in V2V mode. See section 13 for the full iteration session.
+**2026-05-06 confirmation:** First end-to-end output achieved (F-LC-006), followed by 15 rapid parameter tuning runs to find optimal settings. Nano Banana Pro confirmed as the image stage. 4x-UltraSharp used as interim upscaler (SUPIR not yet tested). LTX 2.3 22B FP8 + Distilled LoRA + HDR IC-LoRA confirmed working. See section 13 for the full tuning session.
 
 **~~Z-Image-Base~~ → Flux Dev BF16 (first-frame restyle, image model):** Z-Image was the original choice because it supported composition-guiding techniques (using depth maps and edge detection to tell the AI "keep the structure of the source frame"). After 25 test outputs on 2026-04-30, it was rejected — the model produces painterly output and cannot add realistic lighting or materials to unlit 3D renders (F-LC-002). Flux Dev (by Black Forest Labs, open-weight) replaces it, using a depth-guided approach: a depth extraction tool (DepthAnythingV2) reads the source frame and produces a depth map, then a depth-aware add-on (`flux1-depth-dev-lora.safetensors` — a LoRA, which is a lightweight add-on that teaches the model a new skill without replacing it entirely) guides the image generation so that 3D structure is preserved even when the model generates the image entirely from scratch (full creative freedom, no pixel copying from the source). The full-precision model weights (BF16, ~22GB) are required because the compressed version (FP8, ~17GB — smaller but with reduced numerical precision) breaks loading of the depth LoRA add-on (F-LC-003). Source: `forks/local/findings.md`.
 
@@ -373,12 +373,12 @@ Every field marked "no data yet" is pending — not estimated. Cells will be fil
 | Open vs proprietary | Commercial APIs throughout — we do not control the models | Commercial APIs routed through Robin's management layer | Fully open-source models — anyone can download and run them |
 | Professional output format | No — standard 8-bit video files only | No data yet | Yes — 16-bit/32-bit high-dynamic-range image sequences via LTX-2.3 + HDR add-on (untested; visual quality impact of the add-on unknown) |
 | Max clip length per generation | ~10 seconds (F3) | No data yet — pending first run | No data yet — LTX-2 claims up to 20 seconds per call (unverified in our pipeline) |
-| Does the AI preserve the director's camera move? | Confirmed — the AI keeps the camera move and framing from the Unreal render intact, across 6 tests and 3 video models (F1) | No data yet | Partially confirmed — motion preservation rated GOOD across 15 iterations (F-LC-006, F-LC-007). Not yet directly compared to Classic on the same source clip |
-| Does the output look photorealistic? | First-pass outputs looked like a video game without explicit "not CG" constraints in the prompt; adding those constraints fixed it (F5) | No data yet | Style transfer fades over time due to single-reference IC-LoRA limitation (F-LC-008). Best result at v15 (sigma 0.95, CFG 2.0). Chunked V2V proposed to solve fade (F-LC-009) |
+| Does the AI preserve the director's camera move? | Confirmed — the AI keeps the camera move and framing from the Unreal render intact, across 6 tests and 3 video models (F1) | No data yet | Partially confirmed — motion preservation rated GOOD across 15 tuning runs (F-LC-006, F-LC-007). Not yet directly compared to Classic on the same source clip |
+| Does the output look photorealistic? | First-pass outputs looked like a video game without explicit "not CG" constraints in the prompt; adding those constraints fixed it (F5) | No data yet | Style transfer fades over time due to single-reference IC-LoRA limitation (F-LC-008). Best result at v15 (sigma 0.95, CFG 2.0). Chunked generation proposed to solve fade (F-LC-009) |
 | Can chunks be joined invisibly? | One seamless join achieved 2026-04-23 (`SPACESHIP_UT_NB_KLC_P002_v01`); needs a second scene to confirm | No data yet | No data yet |
 | Chunked stitching for long shots | Working recipe confirmed (5 techniques) | No data yet | Planned — whether Classic's recipe works with open-source models is unconfirmed |
 | Setup difficulty | Medium — install the workflow tool + set up API billing accounts | Low — install one add-on pack, paste one access token | High — download large model files, configure GPU, run bootstrap script |
-| What is blocking the first run? | Nothing — was running 2026-04-23 | Access credentials from Robin (Cognito auth invite pending) | Nothing — V2V confirmed working 2026-05-06. Now in quality tuning phase. Next milestone: V6 chunked V2V workflow to solve style fade |
+| What is blocking the first run? | Nothing — was running 2026-04-23 | Access credentials from Robin (Cognito auth invite pending) | Nothing — pipeline confirmed working 2026-05-06. Now in quality tuning phase. Next milestone: V6 chunked workflow to solve style fade |
 
 ---
 
@@ -424,11 +424,11 @@ Classic's five-step seamless join recipe was built around Kling o1's specific be
 4. Determine whether Robin's roadmap includes persistent access tokens (without them, Hybrid cannot run in automated pipelines — tokens currently expire every ~1 hour). Source: `forks/hybrid/findings.md`.
 
 **Local**
-1. Build the V6 chunked V2V workflow to solve style fade (F-LC-009): split source into 2–3s chunks, generate per-chunk Nano Banana reference, run V2V per chunk, stitch.
+1. Build the V6 chunked workflow to solve style fade (F-LC-009): split source into 2–3s chunks, generate per-chunk Nano Banana reference, restyle per chunk, stitch.
 2. Test SUPIR as upscaler replacement for 4x-UltraSharp — assess quality difference on upscaled frames.
 3. Run the cross-fork camera-preservation comparison vs Classic's Spaceship result on the same source clip.
 4. Continue sigma/CFG tuning beyond the current v15 optimum (sigma 0.95, CFG 2.0, distilled LoRA 0.7).
-5. Investigate whether Classic's chunked stitching recipe (seam-hiding techniques) transfers to LTX-Video, or whether the chunked V2V approach (F-LC-009) supersedes it. Source: `forks/local/findings.md`, `HighVisRnD/outputs/v5_iteration_log.json`.
+5. Investigate whether Classic's chunked stitching recipe (seam-hiding techniques) transfers to LTX-Video, or whether the per-chunk restyle approach (F-LC-009) supersedes it. Source: `forks/local/findings.md`, `HighVisRnD/outputs/v5_iteration_log.json`.
 
 ---
 
@@ -505,11 +505,11 @@ Source: `forks/local/findings.md` (F-LC-002, F-LC-003).
 
 ---
 
-## 13. Local Fork V2V Iteration Session — 15 Runs, Three New Findings
+## 13. Local Fork Parameter Tuning — 15 Runs, Three New Findings
 
-### 2026-05-06 — First V2V output, rapid parameter search, style fade discovery
+### 2026-05-06 — First end-to-end output, rapid parameter search, style fade discovery
 
-The Local fork produced its first successful video-to-video output on 2026-05-06 (F-LC-006, documented in section 6 as an architectural milestone). What followed was a rapid iteration session: 15 runs in a single sitting, exploring the relationship between sigma schedules, CFG, LoRA strength, and their effects on motion fidelity and style transfer. Three new research-grade findings emerged.
+The Local fork produced its first successful end-to-end output on 2026-05-06 (F-LC-006, documented in section 6 as an architectural milestone). What followed was a rapid tuning session: 15 runs in a single sitting, exploring the relationship between sigma schedules, CFG, LoRA strength, and their effects on motion fidelity and style transfer. Three new research-grade findings emerged.
 
 #### F-LC-007 — Motion fidelity and style intensity are separate controls
 
@@ -539,7 +539,7 @@ Source: `HighVisRnD/outputs/v5_iteration_log.json` (iterations v01–v15).
 
 Source: `HighVisRnD/outputs/v5_iteration_log.json` (v13, v14, v15 observations).
 
-#### F-LC-009 — Chunked V2V with per-chunk style anchors (CJ's idea)
+#### F-LC-009 — Chunked generation with per-chunk style anchors
 
 *Question:* If style fades because there is only one reference frame, can we solve it by giving each segment of the video its own reference?
 
@@ -557,7 +557,7 @@ Source: `HighVisRnD/outputs/v5_iteration_log.json` (v13, v14, v15 observations).
 
 Source: `HighVisRnD/outputs/v5_iteration_log.json` (chunked_v2v_solution).
 
-#### Binary search method for parameter optimisation (CJ's idea)
+#### Binary search method for parameter optimisation
 
 The 15-iteration session used a binary search strategy instead of linear increments. Rather than testing sigma 0.4, 0.45, 0.5, 0.55… the approach was:
 
