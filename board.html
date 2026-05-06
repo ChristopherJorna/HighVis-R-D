@@ -514,6 +514,131 @@
     color: #333;
   }
 
+  /* ── Tuning dataset grid ── */
+  .tuning-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+
+  .run-card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+  .run-card:hover { border-color: var(--accent); }
+  .run-card.highlight { border-color: var(--accent); border-width: 2px; }
+
+  .run-card .run-thumb {
+    position: relative;
+    aspect-ratio: 16/9;
+    background: #000;
+    cursor: pointer;
+    overflow: hidden;
+  }
+  .run-card .run-thumb img {
+    width: 100%; height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+  .run-card .run-thumb video {
+    width: 100%; height: 100%;
+    object-fit: contain;
+    display: none;
+    position: absolute;
+    inset: 0;
+  }
+  .run-card .run-thumb.playing img { display: none; }
+  .run-card .run-thumb.playing video { display: block; }
+
+  .run-play-btn {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.6);
+    border: 2px solid rgba(255,255,255,0.4);
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    pointer-events: none;
+  }
+  .run-card .run-thumb:hover .run-play-btn { background: var(--accent); border-color: var(--accent); }
+  .run-card .run-thumb.playing .run-play-btn { display: none; }
+
+  .run-badge {
+    position: absolute;
+    top: 8px; left: 8px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-family: var(--sans);
+    z-index: 2;
+  }
+  .run-badge.best { background: #1a3a1a; color: #5cb85c; }
+  .run-badge.key { background: #1a2a3a; color: #5b9bd5; }
+  .run-badge.baseline { background: #2a2a1a; color: #b5a55b; }
+
+  .run-meta {
+    padding: 12px 14px;
+  }
+  .run-label {
+    font-family: var(--serif);
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+  .run-params {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 12px;
+    margin-bottom: 8px;
+  }
+  .run-param {
+    font-family: var(--sans);
+    font-size: 11px;
+    color: var(--ink-muted);
+  }
+  .run-param strong {
+    color: var(--ink-soft);
+    font-weight: 600;
+  }
+  .run-analysis {
+    font-family: var(--sans);
+    font-size: 12px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+    padding-top: 8px;
+    border-top: 1px solid var(--rule);
+  }
+  .run-analysis .motion-tag, .run-analysis .style-tag {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-right: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .motion-tag.good { background: #1a3a1a; color: #5cb85c; }
+  .motion-tag.perfect { background: #1a3a1a; color: #8fd98f; }
+  .motion-tag.poor { background: #3a1a1a; color: #d95b5b; }
+  .style-tag.none { background: #2a2a2a; color: #666; }
+  .style-tag.low { background: #2a2a1a; color: #b5a55b; }
+  .style-tag.mid { background: #1a2a3a; color: #5b9bd5; }
+  .style-tag.best { background: #1a3a1a; color: #5cb85c; }
+
   @media (max-width: 600px) {
     .page-wrap { padding: 32px 16px 64px; }
     .video-section { flex-direction: column; }
@@ -671,7 +796,36 @@
   </div>
 
   <!-- ══════════════════════════════════════════════════════════════
-       SECTION 3 — Classic Fork Results (existing card grid)
+       SECTION 3 — Local Fork Parameter Tuning Dataset
+       ══════════════════════════════════════════════════════════════ -->
+  <h2 class="section-heading">Local Fork — Parameter Tuning Dataset (6 May 2026)</h2>
+  <p class="section-desc">15 runs on the Spaceship scene, varying sigma schedule, CFG, and LoRA strength to find the best balance of motion preservation and style transfer. Every run uses the same pipeline: source video restyled by Nano Banana, upscaled by 4x-UltraSharp, then rendered by LTX 2.3 22B on an RTX 5090. Click any video to play.</p>
+
+  <!-- Key findings callout -->
+  <div class="verdict-box" style="margin-bottom:32px;">
+    <div class="verdict-label">Key findings from this session</div>
+    <p><strong>F-LC-007:</strong> Motion and style are controlled by separate settings. The noise schedule (sigmas) controls how much the AI changes the camera move. CFG and prompts control how strongly the new look is applied. You can lock one without affecting the other.</p>
+    <p style="margin-top:10px"><strong>F-LC-008:</strong> The restyled look fades over time. The AI uses a single reference image (the restyled first frame) to guide the entire clip. Style is strongest at the start and drops to about 60% after the first second.</p>
+    <p style="margin-top:10px"><strong>F-LC-009:</strong> Proposed fix: split the video into 2–3 second chunks, generate a fresh reference for each chunk, restyle each chunk independently. Planned as the V6 workflow.</p>
+  </div>
+
+  <!-- Pipeline info -->
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:32px;">
+    <div class="img-card">
+      <img src="scenes/SPACESHIP/tests/SPACESHIP_UT_NB_KL_P001_v01/source_frame.png" alt="Source frame" loading="lazy">
+      <div class="img-caption"><strong>Source</strong> — Unlit 3D render from Unreal Engine (Spaceship scene). This is the input to every run.</div>
+    </div>
+    <div class="img-card">
+      <img src="outputs/v5_runs/thumbs/nb_01.jpg" alt="Nano Banana restyle" loading="lazy">
+      <div class="img-caption"><strong>Nano Banana reference</strong> — The restyled first frame that guides the AI's output. Same reference used across all 15 runs.</div>
+    </div>
+  </div>
+
+  <!-- Dataset table -->
+  <div id="tuning-dataset"></div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 4 — Classic Fork Results (existing card grid)
        ══════════════════════════════════════════════════════════════ -->
   <h2 class="section-heading">Classic Fork Results</h2>
   <p class="section-desc">Filterable test grid for the Classic rendering fork. Click any card to compare source vs output.</p>
@@ -977,6 +1131,103 @@ document.getElementById("modal-video").addEventListener("ended", () => {
 });
 
 loadData();
+
+// ── Tuning dataset ──────────────────────────────────────────────────────────
+
+const tuningRuns = [
+  { run: 1,  label: "First successful output", sigmas: "0.975 start, 5 steps", cfg: 1.0, lora: 0.5, motion: "good", style: "low", badge: "key",
+    analysis: "Pipeline confirmed working end-to-end. Motion preserved but style barely visible — sigma schedule too conservative." },
+  { run: 2,  label: "More steps, higher start", sigmas: "0.985 start, 8 steps", cfg: 1.0, lora: 0.5, motion: "poor", style: "low", badge: null,
+    analysis: "More steps with high sigmas gave the model too much freedom. Motion no longer matches the source video." },
+  { run: 3,  label: "14-step extended schedule", sigmas: "0.985 start, 14 steps", cfg: 1.0, lora: 0.5, motion: "poor", style: "low", badge: null,
+    analysis: "Grainy, faded, motion doesn't match. Too many steps compounded the deviation. Rolled back." },
+  { run: 4,  label: "Exploring lower sigma range", sigmas: "~0.8 start", cfg: 1.0, lora: 0.5, motion: "good", style: "low", badge: null,
+    analysis: "Transitional run exploring the sigma space between the first attempts and the motion-lock baseline." },
+  { run: 5,  label: "Sigma exploration", sigmas: "~0.7 start", cfg: 1.5, lora: 0.5, motion: "good", style: "low", badge: null,
+    analysis: "Continued narrowing the parameter space. CFG bump from 1.0 to 1.5 began." },
+  { run: 6,  label: "Sigma exploration", sigmas: "~0.6 start", cfg: 1.5, lora: 0.5, motion: "good", style: "low", badge: null,
+    analysis: "Further sigma reduction. Style still not coming through despite better motion." },
+  { run: 7,  label: "CFG increase test", sigmas: "~0.5 start", cfg: 2.0, lora: 0.5, motion: "good", style: "low", badge: null,
+    analysis: "CFG pushed to 2.0. Slight improvement in contrast but style still minimal at these sigmas." },
+  { run: 8,  label: "LoRA strength test", sigmas: "~0.5 start", cfg: 2.0, lora: 0.7, motion: "good", style: "low", badge: null,
+    analysis: "Distilled LoRA increased from 0.5 to 0.7. Marginal difference — confirming LoRA isn't the main style lever." },
+  { run: 9,  label: "Transitional run", sigmas: "~0.5 start", cfg: 2.0, lora: 0.7, motion: "good", style: "low", badge: null,
+    analysis: "Bridging run before the systematic motion-lock test at v10." },
+  { run: 10, label: "Motion lock baseline", sigmas: "0.4 start, 4 steps", cfg: 2.0, lora: 0.7, motion: "perfect", style: "none", badge: "key",
+    analysis: "Breakthrough: at sigma 0.4, the output is pixel-identical to the source motion. Proves low sigmas lock motion completely — but at the cost of zero style." },
+  { run: 11, label: "LoRA strength at locked motion", sigmas: "0.4 start, 4 steps", cfg: 2.0, lora: 1.0, motion: "perfect", style: "none", badge: null,
+    analysis: "Distilled LoRA pushed to maximum (1.0). Output identical to v10 — confirms LoRA strength has no visible effect when motion is locked at low sigmas." },
+  { run: 12, label: "Sigma 0.55 — first style visible", sigmas: "0.55 start, 5 steps", cfg: 2.0, lora: 0.7, motion: "good", style: "low", badge: null,
+    analysis: "About 5% stylized. Motion still locked. Confirms the starting sigma is the main lever for style intensity." },
+  { run: 13, label: "Sigma 0.7 — style fading observed", sigmas: "0.7 start, 5 steps", cfg: 2.0, lora: 0.7, motion: "good", style: "low", badge: null,
+    analysis: "About 8% stylized. Style strongest on first frame, then fades — first observation of the temporal fade that led to F-LC-008." },
+  { run: 14, label: "Binary search jump to 0.9", sigmas: "0.9 start, 5 steps", cfg: 2.0, lora: 0.7, motion: "good", style: "mid", badge: "key",
+    analysis: "Big jump from 0.7 to 0.9. Style hits ~60% on first frame but drops after the first second. Motion still matches. Confirmed the style fade is an IC-LoRA limitation (F-LC-008), not a sigma issue." },
+  { run: 15, label: "Sigma 0.95 — current best", sigmas: "0.95 start, 5 steps", cfg: 2.0, lora: 0.7, motion: "good", style: "best", badge: "best",
+    analysis: "Strongest style transfer achieved. Motion still tracks the source. Style still fades when camera moves away from the reference frame — chunked generation needed for sustained style (F-LC-009)." }
+];
+
+function videoPath(n) {
+  return `outputs/v5_runs/run${String(n).padStart(2,'0')}_v2v.mp4`;
+}
+function thumbPath(n) {
+  return `outputs/v5_runs/thumbs/v2v_${String(n).padStart(2,'0')}_mid.jpg`;
+}
+
+function renderTuningDataset() {
+  const container = document.getElementById('tuning-dataset');
+  const html = '<div class="tuning-grid">' + tuningRuns.map(r => {
+    const badgeHtml = r.badge
+      ? `<span class="run-badge ${r.badge}">${r.badge === 'best' ? 'Best result' : r.badge === 'key' ? 'Key finding' : r.badge}</span>`
+      : '';
+    const motionClass = r.motion === 'perfect' ? 'perfect' : r.motion === 'good' ? 'good' : 'poor';
+    const styleClass = r.style === 'best' ? 'best' : r.style === 'mid' ? 'mid' : r.style === 'low' ? 'low' : 'none';
+    const styleLabel = r.style === 'best' ? 'Best' : r.style === 'mid' ? '~60%' : r.style === 'low' ? 'Minimal' : 'None';
+
+    return `
+    <div class="run-card${r.badge === 'best' ? ' highlight' : ''}">
+      <div class="run-thumb" onclick="toggleRunVideo(this, ${r.run})">
+        <img src="${thumbPath(r.run)}" alt="Run ${r.run} mid-frame" loading="lazy">
+        <video src="${videoPath(r.run)}" preload="none" loop muted playsinline></video>
+        ${badgeHtml}
+        <div class="run-play-btn">&#9654;</div>
+      </div>
+      <div class="run-meta">
+        <div class="run-label">Run ${r.run}: ${r.label}</div>
+        <div class="run-params">
+          <div class="run-param"><strong>Sigmas:</strong> ${r.sigmas}</div>
+          <div class="run-param"><strong>CFG:</strong> ${r.cfg}</div>
+          <div class="run-param"><strong>LoRA:</strong> ${r.lora}</div>
+          <div class="run-param"><strong>Seed:</strong> 42</div>
+        </div>
+        <div class="run-analysis">
+          <span class="motion-tag ${motionClass}">Motion: ${r.motion}</span>
+          <span class="style-tag ${styleClass}">Style: ${styleLabel}</span>
+          <div style="margin-top:6px">${r.analysis}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('') + '</div>';
+  container.innerHTML = html;
+}
+
+function toggleRunVideo(thumb, runNum) {
+  const video = thumb.querySelector('video');
+  if (thumb.classList.contains('playing')) {
+    video.pause();
+    thumb.classList.remove('playing');
+  } else {
+    // Pause any other playing videos
+    document.querySelectorAll('.run-thumb.playing').forEach(t => {
+      t.querySelector('video').pause();
+      t.classList.remove('playing');
+    });
+    thumb.classList.add('playing');
+    video.play();
+  }
+}
+
+renderTuningDataset();
 </script>
 </body>
 </html>

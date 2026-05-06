@@ -1,0 +1,156 @@
+{
+  "workflow": "Highvis-Local-V5",
+  "date": "2026-05-06",
+  "gpu": "RTX 5090 32GB",
+  "base_pipeline": "Source video -> Resize(1280x720) -> Nano Banana(Gemini 3 Pro) -> Upscale(4x-UltraSharp) -> LTX 2.3 V2V(FP8+IC-LoRA HDR) -> MP4",
+  "model": "ltx-2.3-22b-dev-fp8.safetensors",
+  "sampler": "euler_ancestral",
+  "seed": 42,
+
+  "how_sigmas_work": "Sigmas control how much noise is added to your source video before the AI 'denoises' it back into an image. Think of it like tracing paper: a low sigma (0.1) is like thin tracing paper where the original shows through clearly. A high sigma (1.0) is like a thick fog where the AI has to guess everything from scratch. The STARTING sigma is the most important number - it sets the maximum amount the AI is allowed to change your video. Lower starting values = motion stays locked to the source but style is subtle. Higher values = stronger style but motion starts to drift. The remaining steps are a schedule that gradually reduces the noise, letting the AI refine the result in stages. More steps means smoother, more gradual refinement. Fewer steps means faster but potentially rougher transitions.",
+
+  "how_cfg_works": "CFG (Classifier-Free Guidance) controls how strongly the AI follows your text prompt and style reference. At CFG 1.0, the AI is relaxed and makes its own choices. At CFG 2-3, it tries harder to match what you asked for. Too high (5+) and the image gets oversaturated and weird. For V2V style transfer, CFG 1.5-3.0 is the useful range.",
+
+  "how_lora_strength_works": "LoRA strength controls how much influence a trained style has on the output. The distilled LoRA speeds up generation (fewer steps needed). The HDR IC-LoRA adds the HDR look and enables the reference image guide. At strength 0.5, the effect is subtle. At 1.0, it's full strength. Going above 1.0 can amplify effects but risks artifacts.",
+
+  "key_finding": "Motion fidelity and style intensity are controlled by different knobs. Sigmas control motion (lower = more faithful). CFG, LoRA strength, and prompts control style intensity. The breakthrough was separating these concerns: lock motion first with low sigmas, then push style with other controls.",
+
+  "optimisation_method": "Binary search approach (CJ's idea): instead of incrementally adjusting sigma values step by step (0.4, 0.45, 0.5...), make large jumps to bracket the sweet spot, then split the difference. For example: if 0.4 has perfect motion but no style, jump straight to 0.9 instead of 0.55. If 0.9 has too much drift, try 0.65 (midpoint). This finds the optimal balance in 3-4 runs instead of 10+. Much faster than linear search when you're exploring a continuous parameter space.",
+
+  "style_fade_problem": "IC-LoRA V2V uses a single reference image (frame 0, restyled by Nano Banana) to guide the entire video. The style is strongest on the first frame and fades over time as later frames drift back toward the model's default look. At v14 (sigma 0.9), frame 1 was ~100% styled but dropped to ~60% after the first second, then held steady. This is a fundamental limitation of single-reference-image V2V — the guide's influence weakens the further you get from the reference frame.",
+
+  "chunked_v2v_solution": "CJ's proposed solution: split the source video into chunks (e.g. 2-3 second segments), generate a unique Nano Banana reference image for each chunk's first frame, and run V2V independently per chunk. Each chunk gets a fresh style anchor, preventing the fade-over-time problem. This is planned as the V6 workflow upgrade. The chunked approach also opens up creative possibilities — different style intensities or even different style references per chunk for intentional variation.",
+
+  "iterations": [
+    {
+      "run": 1,
+      "label": "First successful V2V output",
+      "sigmas": "0.975, 0.909375, 0.725, 0.421875, 0.0",
+      "steps": 5,
+      "cfg": 1.0,
+      "distilled_lora": 0.5,
+      "hdr_ic_lora": 1.0,
+      "prompt": "HDR footage",
+      "neg_prompt": "pc game, cartoon, ugly",
+      "hdr_postprocess": true,
+      "result": "Good motion preservation. Faded look - Nano Banana style doesn't come through strongly, fades more over time. Partially caused by high starting sigma allowing drift, partially by HDR postprocess."
+    },
+    {
+      "run": 2,
+      "label": "More steps, higher start",
+      "sigmas": "0.985, 0.975, 0.95, 0.9, 0.8, 0.6, 0.3, 0.0",
+      "steps": 8,
+      "cfg": 1.0,
+      "distilled_lora": 0.5,
+      "hdr_ic_lora": 1.0,
+      "prompt": "HDR footage",
+      "neg_prompt": "pc game, cartoon, ugly",
+      "hdr_postprocess": false,
+      "result": "Motion no longer matches source well. Still faded. More steps with high sigmas gave the model too much freedom to deviate."
+    },
+    {
+      "run": 3,
+      "label": "14-step extended schedule",
+      "sigmas": "14 steps from 0.985 down",
+      "steps": 14,
+      "cfg": 1.0,
+      "distilled_lora": 0.5,
+      "hdr_ic_lora": 1.0,
+      "prompt": "HDR footage",
+      "neg_prompt": "pc game, cartoon, ugly",
+      "hdr_postprocess": false,
+      "result": "Grainy, faded, motion doesn't match. Too many steps compounded the deviation. Rolled back."
+    },
+    {
+      "run": "v10",
+      "label": "Low sigmas - motion lock test",
+      "sigmas": "0.4, 0.3, 0.2, 0.1, 0.0",
+      "steps": 4,
+      "cfg": 2.0,
+      "distilled_lora": 0.7,
+      "hdr_ic_lora": 1.0,
+      "prompt": "HDR footage",
+      "neg_prompt": "pc game, cartoon, ugly",
+      "hdr_postprocess": false,
+      "result": "Identical motion match achieved! But almost no visible style transfer. Proved that low sigmas lock motion perfectly."
+    },
+    {
+      "run": "v11",
+      "label": "Distilled LoRA strength test",
+      "sigmas": "0.4, 0.3, 0.2, 0.1, 0.0",
+      "steps": 4,
+      "cfg": 2.0,
+      "distilled_lora": 1.0,
+      "hdr_ic_lora": 1.0,
+      "prompt": "HDR footage",
+      "neg_prompt": "pc game, cartoon, ugly",
+      "hdr_postprocess": false,
+      "result": "Looks identical to v10. Distilled LoRA strength (0.7 vs 1.0) has minimal visible impact at low sigmas. Reverted to 0.7."
+    },
+    {
+      "run": "v12",
+      "label": "Higher starting sigma",
+      "sigmas": "0.55, 0.4, 0.25, 0.1, 0.0",
+      "steps": 5,
+      "cfg": 2.0,
+      "distilled_lora": 0.7,
+      "hdr_ic_lora": 1.0,
+      "prompt": "HDR footage",
+      "neg_prompt": "pc game, cartoon, ugly",
+      "hdr_postprocess": false,
+      "result": "Slightly better - about 5% stylized. Motion still locked. Confirms starting sigma is the main style lever."
+    },
+    {
+      "run": "v13",
+      "label": "Pushing sigma higher",
+      "sigmas": "0.7, 0.5, 0.3, 0.15, 0.0",
+      "steps": 5,
+      "cfg": 2.0,
+      "distilled_lora": 0.7,
+      "hdr_ic_lora": 1.0,
+      "prompt": "HDR footage",
+      "neg_prompt": "pc game, cartoon, ugly",
+      "hdr_postprocess": false,
+      "result": "About 8% stylized. Starts snowy then quickly reverts. Style fades over time - first frame strongest then drops."
+    },
+    {
+      "run": "v14",
+      "label": "Binary search - big jump to 0.9",
+      "sigmas": "0.9, 0.8, 0.5, 0.3, 0.0",
+      "steps": 5,
+      "cfg": 2.0,
+      "distilled_lora": 0.7,
+      "hdr_ic_lora": 1.0,
+      "prompt": "HDR footage",
+      "neg_prompt": "pc game, cartoon, ugly",
+      "hdr_postprocess": false,
+      "result": "Motion still matches! Style at ~60%. First frame looks great but fades after first second, then holds at 60%. Confirmed style fade is IC-LoRA single-reference limitation, not a sigma issue."
+    },
+    {
+      "run": "v15",
+      "label": "Binary search - split diff to 0.95",
+      "sigmas": "0.95, 0.8, 0.5, 0.3, 0.0",
+      "steps": 5,
+      "cfg": 2.0,
+      "distilled_lora": 0.7,
+      "hdr_ic_lora": 1.0,
+      "prompt": "HDR footage",
+      "neg_prompt": "pc game, cartoon, ugly",
+      "hdr_postprocess": false,
+      "result": "Best result so far. Stronger style than v14. Motion still matches. Still struggles when camera moves away from start frame - style fades. Confirms chunked V2V needed for sustained style."
+    }
+  ],
+
+  "best_settings": {
+    "label": "v15 - current best",
+    "sigmas": "0.95, 0.8, 0.5, 0.3, 0.0",
+    "cfg": 2.0,
+    "distilled_lora": 0.7,
+    "hdr_ic_lora": 1.0,
+    "notes": "Best balance of motion fidelity and style transfer for single-reference V2V. Style fade over time remains - needs chunked workflow (V6) to solve."
+  },
+
+  "timing_notes": "Video save/encode step takes ~30 seconds on CPU (ffmpeg). This is unavoidable - GPU handles the V2V generation, CPU handles MP4 encoding. GPU runs at 100% utilization (510W, 27GB VRAM) during sampling.",
+
+  "session_notes": "8-hour troubleshooting session to get first output. Key discovery: motion fidelity and style are separate controls. Low sigmas (0.4-0.7 start) lock motion perfectly. Style must be pushed via sigma starting point, not via LoRA strength or step count. CFG 2.0 helps with contrast. Distilled LoRA strength has minimal impact at low sigma ranges."
+}
